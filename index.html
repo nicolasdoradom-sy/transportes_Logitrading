@@ -50,19 +50,33 @@ button,input,select,textarea{font:inherit} button{cursor:pointer}
 .final-rec-title{display:flex;justify-content:space-between;align-items:center;padding:12px 16px;background:linear-gradient(90deg,rgba(245,154,47,.16),rgba(245,154,47,.03));border-bottom:1px solid #2d394c;font-size:11px;letter-spacing:.08em;color:#ffae45}.final-rec-title b{font-size:10px;color:#dce4ed;letter-spacing:.04em}
 .final-rec-body{display:grid;grid-template-columns:240px 1fr;gap:20px;padding:18px}.final-rec-image{min-height:150px;border:1px solid #2c394c;border-radius:14px;background:radial-gradient(circle at 50% 35%,#1c2939,#0b111a);display:flex;align-items:center;justify-content:center;overflow:hidden}.final-rec-image svg{width:225px;height:145px}.final-rec-name{font-size:27px;font-weight:900;color:#fff;line-height:1.1}.final-rec-name small{font-size:15px;color:#ffad43}.final-rec-meta{margin-top:7px;color:#9caabd;font-size:12px}.final-rec-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;margin-top:20px}.final-rec-grid div{border:1px solid #2a374a;background:#0b121b;border-radius:10px;padding:10px}.final-rec-grid span{display:block;color:#7f8da1;font-size:9px;text-transform:uppercase;letter-spacing:.06em}.final-rec-grid strong{display:block;margin-top:5px;color:#f5f8fb;font-size:14px}
 @media(max-width:700px){.final-rec-body{grid-template-columns:1fr}.final-rec-grid{grid-template-columns:repeat(2,1fr)}}
+
+.app-nav-six{
+  grid-template-columns:repeat(6,minmax(0,1fr)) !important;
+}
+.app-nav-six .app-tab{
+  width:100%;
+  justify-content:center;
+}
+@media (max-width: 900px){
+  .app-nav-six{grid-template-columns:repeat(3,minmax(0,1fr)) !important;}
+}
+@media (max-width: 560px){
+  .app-nav-six{grid-template-columns:repeat(2,minmax(0,1fr)) !important;}
+}
 </style>
 </head>
 <body>
 <header class="topbar">
   <div class="brand"><div class="brand-mark">LT</div><div>LOGITRADING<small>ENCUESTADOR DE SELECCIÓN DE VEHÍCULO</small></div></div>
-  <div class="header-actions"><button class="btn ghost" onclick="showPanel(6)">Tabla maestra</button><button class="btn primary" onclick="showPanel(7);generarCotizacion()">Cotización final</button></div>
+  <div class="header-actions"><button class="btn ghost" onclick="showPanel(6)">⚙ Tabla maestra</button><button class="btn primary" onclick="showPanel(7);generarCotizacion()">Cotización final</button></div>
 </header>
 
 <main class="container">
   <div class="hero">
     <div><div class="eyebrow">Panel de decisión logística</div><h1>Selección inteligente de transporte</h1><p>Registra la operación y una o varias referencias de carga. El sistema convierte unidades, calcula peso, volumen y área de piso, valida dimensiones y condiciones especiales, y recomienda la combinación de vehículos más pequeña que cumpla los requisitos.</p></div>
   </div>
-  <div class="app-nav" id="appNav"><button class="app-tab active" data-panel="1" onclick="showPanel(1)"><span class="num">1</span> Servicio</button><button class="app-tab" data-panel="2" onclick="showPanel(2)"><span class="num">2</span> Contenedor</button><button class="app-tab" data-panel="3" onclick="showPanel(3)"><span class="num">3</span> Carga</button><button class="app-tab" data-panel="4" onclick="showPanel(4)"><span class="num">4</span> Especiales</button><button class="app-tab" data-panel="5" onclick="showPanel(5)"><span class="num">5</span> Analizador</button><button class="app-tab" data-panel="6" onclick="showPanel(6)"><span class="num">6</span> Vehículos</button><button class="app-tab" data-panel="7" onclick="showPanel(7)"><span class="num">7</span> Cotización</button></div><div class="dashboard"><div class="dash-card"><span>Peso total</span><strong id="dashTon">0.00 t</strong></div><div class="dash-card"><span>Cubicaje</span><strong id="dashM3">0.00 m³</strong></div><div class="dash-card"><span>Referencias</span><strong id="dashRefs">0</strong></div><div class="dash-card"><span>Estado</span><strong><i id="dashDot" class="status-dot"></i><span id="dashStatus">Pendiente</span></strong></div></div>
+  <div class="app-nav app-nav-six" id="appNav"><button class="app-tab active" data-panel="1" onclick="showPanel(1)"><span class="num">1</span> Servicio</button><button class="app-tab" data-panel="2" onclick="showPanel(2)"><span class="num">2</span> Contenedor</button><button class="app-tab" data-panel="3" onclick="showPanel(3)"><span class="num">3</span> Carga</button><button class="app-tab" data-panel="4" onclick="showPanel(4)"><span class="num">4</span> Especiales</button><button class="app-tab" data-panel="5" onclick="showPanel(5)"><span class="num">5</span> Analizador</button><button class="app-tab" data-panel="7" onclick="showPanel(7);generarCotizacion()"><span class="num">6</span> Cotización final</button></div><div class="dashboard"><div class="dash-card"><span>Peso total</span><strong id="dashTon">0.00 t</strong></div><div class="dash-card"><span>Cubicaje</span><strong id="dashM3">0.00 m³</strong></div><div class="dash-card"><span>Referencias</span><strong id="dashRefs">0</strong></div><div class="dash-card"><span>Estado</span><strong><i id="dashDot" class="status-dot"></i><span id="dashStatus">Pendiente</span></strong></div></div>
 
   <div class="grid">
     <section class="card panel" id="panel1">
@@ -152,15 +166,15 @@ button,input,select,textarea{font:inherit} button{cursor:pointer}
       <div class="section-title"><div><h2>5. Analizador</h2><div class="sub">Margen operativo configurable: 10 % por defecto.</div></div><button class="btn primary" onclick="analizar()">Analizar mejor opción</button></div>
       <div id="alerts" class="alerts"><div class="alert blue">Completa al menos una referencia y pulsa <b>Analizar mejor opción</b>.</div></div>
       <div id="recommendation" style="margin-top:12px"></div>
-    <div class="panel-next"><button class="btn ghost" onclick="showPanel(4)">← Atrás</button><button class="btn primary" onclick="showPanel(6)">Continuar →</button></div></section>
+    <div class="panel-next"><button class="btn ghost" onclick="showPanel(4)">← Atrás</button><button class="btn primary" onclick="analizar();showPanel(7);generarCotizacion()">Ver cotización final →</button></div></section>
 
     <section class="card full panel" id="panel6">
-      <div class="section-title"><div><h2>6. Tabla maestra de vehículos</h2><div class="sub">Parámetros editables. Los valores iniciales se basan en la tabla de Logitrading enviada por tu jefe. Puedes ajustarlos a las cotizaciones y especificaciones reales.</div></div><button class="btn" onclick="restaurarVehiculos()">Restaurar valores base</button></div>
+      <div class="section-title"><div><h2>Tabla maestra de vehículos</h2><div class="sub">Parámetros editables. Los valores iniciales se basan en la tabla de Logitrading enviada por tu jefe. Puedes ajustarlos a las cotizaciones y especificaciones reales.</div></div><button class="btn" onclick="restaurarVehiculos()">Restaurar valores base</button></div>
       <div style="overflow:auto"><table class="quote master-table" style="width:100%;border-collapse:collapse"><thead><tr><th>Tipo de vehículo</th><th>Imagen</th><th>Cap. útil (t)</th><th>Volumen (m³)</th><th>L × A × H (m)</th><th>Carrocería</th><th>Uso / carga</th><th>Especial</th></tr></thead><tbody id="vehicleTable"></tbody></table></div>
-    <div class="panel-next"><button class="btn ghost" onclick="showPanel(5)">← Atrás</button><button class="btn primary" onclick="showPanel(7)">Continuar →</button></div></section>
+    </section>
 
     <section class="card full panel" id="panel7">
-      <div class="section-title"><div><h2>7. Cotización final</h2><div class="sub">Resumen listo para revisar y enviar al transportador.</div></div><div><button class="btn" onclick="generarCotizacion()">Generar cotización</button> <button class="btn danger" onclick="reiniciarTodo()">Reiniciar todo</button></div></div>
+      <div class="section-title"><div><h2>6. Cotización final</h2><div class="sub">Resumen listo para revisar y enviar al transportador.</div></div><div><button class="btn" onclick="generarCotizacion()">Generar cotización</button> <button class="btn danger" onclick="reiniciarTodo()">Reiniciar todo</button></div></div>
       <div id="quote" class="quote"><div class="empty">Aún no hay cotización. Registra la carga y analiza la mejor opción.</div></div>
     <div class="panel-next"><button class="btn ghost" onclick="showPanel(5)">← Analizador</button><button class="btn primary" onclick="generarCotizacion()">Actualizar cotización</button><button class="btn danger" onclick="reiniciarTodo()">Reiniciar todo</button></div></section>
   </div>
