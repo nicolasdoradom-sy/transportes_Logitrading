@@ -43,22 +43,24 @@ button,input,select,textarea{font:inherit} button{cursor:pointer}
 .footer-note{color:#68758a;font-size:11px;text-align:center;margin-top:18px;line-height:1.5}
 @media(max-width:1050px){.grid{grid-template-columns:1fr}.full{grid-column:auto}.piece-grid,.cargo-head{grid-template-columns:1fr 1fr 1fr}.piece-extra{grid-template-columns:repeat(2,1fr)}.totals,.rec-grid{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:680px){.topbar{padding:0 14px}.header-actions .btn{display:none}.hero{display:block}.hero h1{font-size:25px}.fields{grid-template-columns:1fr}.piece-grid{grid-template-columns:1fr 1fr}.cargo-head{display:none}.totals,.rec-grid{grid-template-columns:1fr 1fr}.alt{grid-template-columns:1fr 1fr}}
+
+.app-nav{display:flex;gap:7px;flex-wrap:wrap;margin:18px 0 22px;padding:8px;background:#0d141f;border:1px solid #26344a;border-radius:14px;position:sticky;top:10px;z-index:30;box-shadow:0 12px 30px rgba(0,0,0,.25)}.app-tab{border:1px solid transparent;background:transparent;color:#8f9bad;padding:10px 13px;border-radius:10px;cursor:pointer;font-weight:700;font-size:11px;transition:.2s;display:flex;align-items:center;gap:7px}.app-tab:hover{background:#151e2b;color:#eef3f8}.app-tab.active{background:linear-gradient(135deg,#ffb25c,#e58216);color:#111821;box-shadow:0 7px 20px rgba(245,154,47,.2)}.app-tab .num{width:20px;height:20px;border-radius:50%;display:grid;place-items:center;border:1px solid currentColor;font-size:9px}.panel{display:none!important;animation:panelIn .25s ease}.panel.active{display:block!important}@keyframes panelIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}.dashboard{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;margin:0 0 16px}.dash-card{background:#111925;border:1px solid #27344a;border-radius:12px;padding:12px}.dash-card span{display:block;color:#7f8da2;font-size:9px;text-transform:uppercase;letter-spacing:.08em}.dash-card strong{display:block;margin-top:5px;font-size:18px}.status-dot{display:inline-block!important;width:8px!important;height:8px!important;border-radius:50%;background:#657184;margin-right:5px;vertical-align:middle}.status-dot.green{background:#35d07f}.status-dot.yellow{background:#f3bb45}.status-dot.red{background:#f45b69}.panel-next{display:flex;justify-content:space-between;gap:8px;margin-top:18px;padding-top:14px;border-top:1px solid #253249}.panel-next .btn{min-width:130px}@media(max-width:800px){.dashboard{grid-template-columns:1fr 1fr}.app-nav{position:static}.app-tab{flex:1 1 40%;justify-content:center}}
 </style>
 </head>
 <body>
 <header class="topbar">
   <div class="brand"><div class="brand-mark">LT</div><div>LOGITRADING<small>ENCUESTADOR DE SELECCIÓN DE VEHÍCULO</small></div></div>
-  <div class="header-actions"><button class="btn ghost" onclick="scrollToId('vehiculos')">Tabla maestra</button><button class="btn primary" onclick="generarCotizacion()">Cotización final</button></div>
+  <div class="header-actions"><button class="btn ghost" onclick="showPanel(6)">Tabla maestra</button><button class="btn primary" onclick="showPanel(7);generarCotizacion()">Cotización final</button></div>
 </header>
 
 <main class="container">
   <div class="hero">
     <div><div class="eyebrow">Panel de decisión logística</div><h1>Selección inteligente de transporte</h1><p>Registra la operación y una o varias referencias de carga. El sistema convierte unidades, calcula peso, volumen y área de piso, valida dimensiones y condiciones especiales, y recomienda la combinación de vehículos más pequeña que cumpla los requisitos.</p></div>
   </div>
-  <div class="progress"><div class="step on"></div><div class="step on"></div><div class="step on"></div><div class="step on"></div><div class="step on"></div></div>
+  <div class="app-nav" id="appNav"><button class="app-tab active" data-panel="1" onclick="showPanel(1)"><span class="num">1</span> Servicio</button><button class="app-tab" data-panel="2" onclick="showPanel(2)"><span class="num">2</span> Contenedor</button><button class="app-tab" data-panel="3" onclick="showPanel(3)"><span class="num">3</span> Carga</button><button class="app-tab" data-panel="4" onclick="showPanel(4)"><span class="num">4</span> Especiales</button><button class="app-tab" data-panel="5" onclick="showPanel(5)"><span class="num">5</span> Analizador</button><button class="app-tab" data-panel="6" onclick="showPanel(6)"><span class="num">6</span> Vehículos</button><button class="app-tab" data-panel="7" onclick="showPanel(7)"><span class="num">7</span> Cotización</button></div><div class="dashboard"><div class="dash-card"><span>Peso total</span><strong id="dashTon">0.00 t</strong></div><div class="dash-card"><span>Cubicaje</span><strong id="dashM3">0.00 m³</strong></div><div class="dash-card"><span>Referencias</span><strong id="dashRefs">0</strong></div><div class="dash-card"><span>Estado</span><strong><i id="dashDot" class="status-dot"></i><span id="dashStatus">Pendiente</span></strong></div></div>
 
   <div class="grid">
-    <section class="card">
+    <section class="card panel" id="panel1">
       <div class="section-title"><div><h2>1. Información general</h2><div class="sub">Datos necesarios para solicitar la tarifa al transportador.</div></div></div>
       <div class="fields">
         <div class="field"><label>Tipo de operación</label><select id="operacion"><option>Importación</option><option>Exportación</option><option>Nacional</option></select></div>
@@ -72,9 +74,9 @@ button,input,select,textarea{font:inherit} button{cursor:pointer}
         <div class="field"><label>Devolución de vacío</label><select id="vacio"><option>No</option><option>Sí</option></select></div>
         <div class="field"><label>Lugar de devolución</label><input id="lugarVacio" placeholder="Puerto, patio o ciudad"></div>
       </div>
-    </section>
+    <div class="panel-next"><span></span><button class="btn primary" onclick="showPanel(2)">Continuar →</button></div></section>
 
-    <section class="card" id="containerCard">
+    <section class="card panel" id="panel2">
       <div class="section-title"><div><h2>2. Contenedor</h2><div class="sub">Se activa cuando la carga viene en contenedor.</div></div></div>
       <div class="fields">
         <div class="field"><label>Tamaño</label><select id="contTam"><option>20'</option><option>40'</option><option>40 HC</option></select></div>
@@ -87,9 +89,9 @@ button,input,select,textarea{font:inherit} button{cursor:pointer}
         <div class="field"><label>Patio / ciudad devolución</label><input id="contPatio"></div>
       </div>
       <div class="footer-note">Para contenedores, el peso bruto se calcula como mercancía + tara y se valida frente al equipo portacontenedor correspondiente.</div>
-    </section>
+    <div class="panel-next"><button class="btn ghost" onclick="showPanel(1)">← Atrás</button><button class="btn primary" onclick="showPanel(3)">Continuar →</button></div></section>
 
-    <section class="card full">
+    <section class="card full panel" id="panel3">
       <div class="section-title"><div><h2>3. Piezas y cubicaje</h2><div class="sub">Agrega cada referencia o grupo de piezas. El sistema reinicia el formulario de pieza al guardar y permite editar cualquier registro.</div></div><button class="btn primary" onclick="agregarPieza()">+ Agregar otra pieza o grupo</button></div>
       <div class="piece" id="pieceForm">
         <div class="fields">
@@ -118,9 +120,9 @@ button,input,select,textarea{font:inherit} button{cursor:pointer}
         <div class="metric"><span>Área de piso</span><strong id="totalArea">0.00 m²</strong></div>
         <div class="metric"><span>Referencias</span><strong id="totalRefs">0</strong></div>
       </div>
-    </section>
+    <div class="panel-next"><button class="btn ghost" onclick="showPanel(2)">← Atrás</button><button class="btn primary" onclick="showPanel(4)">Continuar →</button></div></section>
 
-    <section class="card">
+    <section class="card panel" id="panel4">
       <div class="section-title"><div><h2>4. Características especiales</h2><div class="sub">Condiciones que pueden cambiar la recomendación.</div></div></div>
       <div class="fields">
         <div class="field"><label>¿Requiere carpa o vehículo cerrado?</label><select id="cerrado"><option>No</option><option>Sí</option></select></div>
@@ -139,28 +141,32 @@ button,input,select,textarea{font:inherit} button{cursor:pointer}
         <div class="field"><label>¿Mercancía peligrosa?</label><select id="peligrosa"><option>No</option><option>Sí</option></select></div>
         <div class="field"><label>N.º ONU / Clase IMO</label><input id="imo" placeholder="Ej. UN 1203 / Clase 3"></div>
       </div>
-    </section>
+    <div class="panel-next"><button class="btn ghost" onclick="showPanel(3)">← Atrás</button><button class="btn primary" onclick="showPanel(5)">Continuar →</button></div></section>
 
-    <section class="card">
+    <section class="card panel" id="panel5">
       <div class="section-title"><div><h2>5. Analizador</h2><div class="sub">Margen operativo configurable: 10 % por defecto.</div></div><button class="btn primary" onclick="analizar()">Analizar mejor opción</button></div>
       <div id="alerts" class="alerts"><div class="alert blue">Completa al menos una referencia y pulsa <b>Analizar mejor opción</b>.</div></div>
       <div id="recommendation" style="margin-top:12px"></div>
-    </section>
+    <div class="panel-next"><button class="btn ghost" onclick="showPanel(4)">← Atrás</button><button class="btn primary" onclick="showPanel(6)">Continuar →</button></div></section>
 
-    <section class="card full" id="vehiculos">
+    <section class="card full panel" id="panel6">
       <div class="section-title"><div><h2>6. Tabla maestra de vehículos</h2><div class="sub">Parámetros editables. Los valores iniciales se basan en la tabla de Logitrading enviada por tu jefe. Puedes ajustarlos a las cotizaciones y especificaciones reales.</div></div><button class="btn" onclick="restaurarVehiculos()">Restaurar valores base</button></div>
       <div style="overflow:auto"><table class="quote master-table" style="width:100%;border-collapse:collapse"><thead><tr><th>Tipo de vehículo</th><th>Imagen</th><th>Cap. útil (t)</th><th>Volumen (m³)</th><th>L × A × H (m)</th><th>Carrocería</th><th>Uso / carga</th><th>Especial</th></tr></thead><tbody id="vehicleTable"></tbody></table></div>
-    </section>
+    <div class="panel-next"><button class="btn ghost" onclick="showPanel(5)">← Atrás</button><button class="btn primary" onclick="showPanel(7)">Continuar →</button></div></section>
 
-    <section class="card full">
+    <section class="card full panel" id="panel7">
       <div class="section-title"><div><h2>7. Cotización final</h2><div class="sub">Resumen listo para revisar y enviar al transportador.</div></div><div><button class="btn" onclick="generarCotizacion()">Generar cotización</button> <button class="btn danger" onclick="reiniciarTodo()">Reiniciar todo</button></div></div>
       <div id="quote" class="quote"><div class="empty">Aún no hay cotización. Registra la carga y analiza la mejor opción.</div></div>
-    </section>
+    <div class="panel-next"><button class="btn ghost" onclick="showPanel(5)">← Analizador</button><button class="btn primary" onclick="generarCotizacion()">Actualizar cotización</button><button class="btn danger" onclick="reiniciarTodo()">Reiniciar todo</button></div></section>
   </div>
   <div class="footer-note">Recomendación preliminar: la selección final debe validarse con el transportador según vehículo real, ruta, normatividad, carrocería, estiba/distribución y permisos aplicables.</div>
 </main>
 
 <script>
+
+function showPanel(n){document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));const p=document.getElementById('panel'+n);if(p)p.classList.add('active');document.querySelectorAll('.app-tab').forEach(t=>t.classList.toggle('active',Number(t.dataset.panel)===n));if(n===2)toggleContainer();updateDashboard();window.scrollTo({top:0,behavior:'smooth'});}
+function updateDashboard(){const t=typeof totals==='function'?totals():{ton:0,m3:0,refs:0};const a=typeof lastAnalysis!=='undefined'?lastAnalysis:null;const q=id=>document.getElementById(id);if(q('dashTon'))q('dashTon').textContent=(t.ton||0).toFixed(2)+' t';if(q('dashM3'))q('dashM3').textContent=(t.m3||0).toFixed(2)+' m³';if(q('dashRefs'))q('dashRefs').textContent=t.refs||0;if(a&&typeof validation==='function'){const v=validation(a);q('dashStatus').textContent=v==='green'?'Aprobado':v==='yellow'?'Revisar':'No compatible';q('dashDot').className='status-dot '+v;}else{q('dashStatus').textContent='Pendiente';q('dashDot').className='status-dot';}}
+
 const BASE_VEHICLES = [
  {name:"4 x 4",cap:1,vol:5.5,L:2.0,W:1.4,H:1.5,body:"Furgón - carpado platón",cargo:"Carga suelta / bultos / pallets",special:""},
  {name:"Turbo",cap:4.5,vol:18.5,L:4.5,W:2.0,H:2.1,body:"Furgón - carpado platón",cargo:"Carga suelta / bultos / pallets",special:""},
@@ -321,11 +327,27 @@ function analizar(){
  generarCotizacion();
 }
 function generarCotizacion(){
- const a=lastAnalysis||analyzeSet(); if(!a.best){$("quote").innerHTML='<div class="empty">Analiza la carga primero para generar la cotización.</div>';return}
- const op=$("operacion").value, mod=$("modalidad").value, serv=$("servicio").value;
- $("quote").innerHTML=`<div class="quote-head"><div><b>Solicitud de transporte</b><div style="color:#8d99ab;font-size:11px;margin-top:4px">${esc(op)} · ${esc(mod)} · ${esc(serv)}</div></div><span class="badge ${validation(a).level}">${validation(a).level.toUpperCase()}</span></div>
- <table><tr><th>Ruta</th><td>${esc($("origen").value||"Pendiente")} → ${esc($("destino").value||"Pendiente")}</td></tr><tr><th>Recogida</th><td>${esc($("recogida").value||"Pendiente")}</td></tr><tr><th>Fecha</th><td>${esc($("fecha").value||"Pendiente")}</td></tr><tr><th>Carga</th><td>${a.t.weight.toFixed(3)} t · ${a.t.volume.toFixed(2)} m³ · ${a.t.area.toFixed(2)} m² · ${pieces.length} referencias</td></tr><tr><th>Vehículo recomendado</th><td><b>${esc(a.best.v.name)} × ${a.best.multi?a.best.count:1}</b></td></tr><tr><th>Ocupación</th><td>${a.best.wOcc.toFixed(1)}% peso · ${(a.best.vOcc||0).toFixed(1)}% volumen</td></tr><tr><th>Requerimientos</th><td>${requirements()}</td></tr></table>
- <div style="margin-top:13px;color:#8f9bad;font-size:11px">Nota comercial: recomendación preliminar. Confirmar vehículo real, disponibilidad, ruta, restricciones, distribución física, permisos y tarifa antes de emitir la oferta definitiva.</div>`;
+  // Siempre recalculamos para que la cotización use los últimos datos ingresados.
+  if(!pieces.length){
+    $("quote").innerHTML='<div class="empty">⚠ Agrega al menos una pieza o grupo de piezas antes de generar la cotización.</div>';
+    $("quote").scrollIntoView({behavior:"smooth",block:"center"});
+    return;
+  }
+  const a=analyzeSet();
+  lastAnalysis=a;
+  if(!a.best){
+    $("quote").innerHTML='<div class="alert red">⚠ No se encontró un vehículo compatible. Revisa peso, volumen, dimensiones y condiciones especiales.</div>';
+    $("quote").scrollIntoView({behavior:"smooth",block:"center"});
+    return;
+  }
+  const op=$("operacion").value, mod=$("modalidad").value, serv=$("servicio").value;
+  const val=validation(a);
+  const fecha=$("fecha").value ? new Date($("fecha").value).toLocaleString("es-CO") : "Pendiente";
+  $("quote").innerHTML=`<div class="quote-head"><div><b>Solicitud de transporte</b><div style="color:#8d99ab;font-size:11px;margin-top:4px">${esc(op)} · ${esc(mod)} · ${esc(serv)}</div></div><span class="badge ${val.level}">${val.level.toUpperCase()}</span></div>
+  <table><tr><th>Ruta</th><td>${esc($("origen").value||"Pendiente")} → ${esc($("destino").value||"Pendiente")}</td></tr><tr><th>Recogida</th><td>${esc($("recogida").value||"Pendiente")}</td></tr><tr><th>Destino</th><td>${esc($("destino").value||"Pendiente")}</td></tr><tr><th>Fecha requerida</th><td>${esc(fecha)}</td></tr><tr><th>Tipo de carga</th><td>${esc($("tipoCarga").value||"Pendiente")}</td></tr><tr><th>Carga</th><td>${a.t.weight.toFixed(3)} t · ${a.t.volume.toFixed(2)} m³ · ${a.t.area.toFixed(2)} m² · ${pieces.length} referencias</td></tr><tr><th>Vehículo recomendado</th><td><b>${esc(a.best.v.name)} × ${a.best.multi?a.best.count:1}</b></td></tr><tr><th>Ocupación</th><td>${a.best.wOcc.toFixed(1)}% peso · ${(a.best.vOcc||0).toFixed(1)}% volumen</td></tr><tr><th>Requerimientos</th><td>${requirements()}</td></tr></table>
+  <div style="margin-top:13px;color:#8f9bad;font-size:11px">Nota comercial: recomendación preliminar. Confirmar vehículo real, disponibilidad, ruta, restricciones, distribución física, permisos y tarifa antes de emitir la oferta definitiva.</div>
+  <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px"><button class="btn primary" onclick="window.print()">🖨 Imprimir / guardar PDF</button></div>`;
+  $("quote").scrollIntoView({behavior:"smooth",block:"center"});
 }
 function requirements(){
  const r=[]; if($("cerrado").value==="Sí")r.push("carrocería cerrada"); if($("satelital").value==="Sí")r.push("sello satelital"); if($("escolta").value==="Sí")r.push("escolta"); if($("equipo").value!=="No")r.push($("equipo").value); if($("temp").value==="Sí")r.push("temperatura controlada"); if($("peligrosa").value==="Sí"||pieces.some(p=>p.peligrosa))r.push("mercancía peligrosa"); if($("sobredim").value==="Sí")r.push("sobredimensión"); return r.join(", ")||"Sin requerimientos especiales registrados";
@@ -401,6 +423,7 @@ function renderVehicles(){
 function restaurarVehiculos(){if(confirm("¿Restaurar la tabla maestra a los valores base?")){vehicles=BASE_VEHICLES.map(v=>({...v}));renderVehicles();}}
 function reiniciarTodo(){if(!confirm("Esto borrará la solicitud, las piezas y el análisis. ¿Continuar?"))return;pieces=[];lastAnalysis=null;document.querySelectorAll("input").forEach(i=>{if(i.type!=="checkbox")i.value=""});document.querySelectorAll("select").forEach(s=>s.selectedIndex=0);$("pCant").value=1;$("contCant").value=1;renderPieces();$("alerts").innerHTML='<div class="alert blue">Solicitud reiniciada. Puedes empezar una nueva.</div>';$("recommendation").innerHTML="";$("quote").innerHTML='<div class="empty">Aún no hay cotización.</div>';toggleContainer();window.scrollTo({top:0,behavior:"smooth"})}
 renderVehicles();renderPieces();toggleContainer();calcPiecePreview();
+document.addEventListener("input",updateDashboard);document.addEventListener("change",updateDashboard);
 </script>
 </body>
 </html>
