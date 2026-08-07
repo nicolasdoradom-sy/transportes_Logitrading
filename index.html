@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Logitrading · Flota de transporte</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #10131A;
+    --surface: #191F28;
+    --surface-2: #212936;
+    --line: #2E3746;
+    --amber: #E8933C;
+    --amber-bright: #FFC876;
+    --text: #F1EDE4;
+    --text-muted: #8B93A1;
+    --text-dim: #5B6472;
+    --radius: 3px;
+  }
+
+  *{ box-sizing:border-box; margin:0; padding:0; }
+  html{ scroll-behavior:smooth; }
+
+  body{
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', sans-serif;
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+    padding-bottom: 6rem;
+    position: relative;
+    overflow-x: hidden;
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    *{ animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+  }
+
+  /* ---------- World map background layer ---------- */
+  #worldmap-layer{
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  }
+  #worldmap-layer svg{
+    width: min(1600px, 165vw);
+    height: auto;
+    opacity: 0.9;
+    transition: transform .4s ease-out;
+  }
+  .map-vignette{
+    position: fixed;
+    inset:0;
+    z-index: 1;
+    pointer-events:none;
+    background:
+      radial-gradient(ellipse 70% 55% at 50% 28%, rgba(16,19,26,0) 0%, rgba(16,19,26,0.55) 60%, rgba(16,19,26,0.96) 100%),
+      linear-gradient(180deg, rgba(16,19,26,0.35) 0%, rgba(16,19,26,0.15) 18%, rgba(16,19,26,0.55) 55%, var(--bg) 92%);
+  }
+  .land-dot{ fill: #3A4353; }
+  .hub-core{ fill: var(--amber-bright); }
+  .hub-ring{
+    fill:none; stroke: var(--amber); stroke-width: 1.4; opacity: 0;
+    transform-origin: center;
+    animation: pulse-ring 2.6s ease-out infinite;
+  }
+  .route-path{
+    fill:none; stroke: var(--amber); stroke-width: 1.3; opacity: .55;
+    stroke-dasharray: 3 5;
+    animation: dash-move 18s linear infinite;
+  }
+  @keyframes dash-move{ to{ stroke-dashoffset: -400; } }
+  @keyframes pulse-ring{
+    0%{ opacity:.7; transform:scale(0.4); }
+    70%{ opacity:0; transform:scale(2.6); }
+    100%{ opacity:0; transform:scale(2.6); }
+  }
+
+  /* ---------- Content wrapper ---------- */
+  .page{ position:relative; z-index: 2; }
+
+  /* ---------- Top bar ---------- */
+  .topbar{
+    display:flex; align-items:center; justify-content:space-between;
+    padding: 1.4rem clamp(1.2rem, 4vw, 3rem) 1.1rem;
+  }
+  .brand{
+    display:flex; align-items:center; gap:.6rem;
+    font-family:'Oswald', sans-serif;
+    font-weight:700;
+    font-size: 1.15rem;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+  }
+  .brand .mark{
+    width: 26px; height: 26px;
+    border: 2px solid var(--amber);
+    border-radius: 2px;
+    position:relative;
+    flex-shrink:0;
+  }
+  .brand .mark::before{
+    content:"";
+    position:absolute; left:3px; right:3px; top:50%;
+    height:2px; background:var(--amber);
+    transform: translateY(-50%);
+  }
+  .brand .mark::after{
+    content:"";
+    position:absolute; left:50%; top:3px; bottom:3px;
+    width:2px; background:var(--amber);
+    transform: translateX(-50%);
+  }
+  .topbar .url{
+    font-family:'IBM Plex Mono', monospace;
+    font-size: .78rem;
+    color: var(--text-dim);
+    letter-spacing: .02em;
+  }
+
+  /* ---------- Punch-hole strip (nod to the printed logbook page) ---------- */
+  .punch-strip{
+    display:flex;
+    gap: clamp(10px, 2vw, 22px);
+    padding: .6rem clamp(1.2rem, 4vw, 3rem);
+    border-top: 1px solid var(--line);
+    border-bottom: 1px solid var(--line);
+    background: var(--surface);
+  }
+  .punch-strip span{
+    width: 9px; height: 9px;
+    border-radius: 50%;
+    background: var(--bg);
+    border: 1px solid var(--line);
+    flex-shrink:0;
+  }
+
+  /* ---------- Hero ---------- */
+  .hero{
+    padding: clamp(2.6rem, 6vw, 5rem) clamp(1.2rem, 4vw, 3rem) clamp(2rem, 4vw, 3rem);
+    max-width: 1180px;
+    margin: 0 auto;
+  }
+  .eyebrow{
+    font-family:'IBM Plex Mono', monospace;
+    font-size: .78rem;
+    color: var(--amber);
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    display:flex; align-items:center; gap: .6rem;
+    margin-bottom: 1.1rem;
+  }
+  .eyebrow::before{
+    content:"";
+    width: 26px; height: 1px;
+    background: var(--amber);
+  }
+  h1{
+    font-family:'Oswald', sans-serif;
+    font-weight: 700;
+    text-transform: uppercase;
+    font-size: clamp(2.3rem, 6vw, 4.4rem);
+    line-height: 0.98;
+    letter-spacing: -0.01em;
+    max-width: 18ch;
+  }
+  h1 em{ font-style: normal; color: var(--amber); }
+  .hero p{
+    margin-top: 1.4rem;
+    max-width: 46ch;
+    color: var(--text-muted);
+    font-size: 1.02rem;
+    line-height: 1.6;
+  }
+  .coords{
+    margin-top: 1.6rem;
+    font-family:'IBM Plex Mono', monospace;
+    font-size: .74rem;
+    color: var(--text-dim);
+    letter-spacing: .04em;
+    display:flex; align-items:center; gap:.5rem;
+  }
+  .coords .dot{
+    width:6px; height:6px; border-radius:50%; background: var(--amber-bright);
+    box-shadow: 0 0 0 3px rgba(232,147,60,.18);
+  }
+
+  /* ---------- Fleet lineup / selector ---------- */
+  .fleet-section{
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 0 clamp(1.2rem, 4vw, 3rem);
+  }
+  .section-label{
+    display:flex; align-items:baseline; justify-content:space-between;
+    border-bottom: 1px solid var(--line);
+    padding-bottom: .8rem;
+    margin-bottom: 1.6rem;
+    flex-wrap: wrap;
+    gap: .5rem;
+  }
+  .section-label h2{
+    font-family:'Oswald', sans-serif;
+    text-transform: uppercase;
+    font-weight: 600;
+    font-size: 1rem;
+    letter-spacing: .08em;
+  }
+  .section-label span{
+    font-family:'IBM Plex Mono', monospace;
+    font-size: .75rem;
+    color: var(--text-dim);
+  }
+
+  .lineup{
+    display:grid;
+    grid-template-columns: repeat(auto-fill, minmax(148px, 1fr));
+    gap: .7rem;
+  }
+
+  .veh-card{
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 1rem .9rem .85rem;
+    cursor: pointer;
+    text-align:left;
+    color: inherit;
+    font: inherit;
+    display:flex; flex-direction:column; gap: .6rem;
+    position:relative;
+    transition: border-color .15s ease, background .15s ease, transform .12s ease;
+  }
+  .veh-card:hover{ border-color: #4b5566; transform: translateY(-2px); }
+  .veh-card:focus-visible{ outline: 2px solid var(--amber); outline-offset: 2px; }
+  .veh-card.active{ background: var(--surface-2); border-color: var(--amber); }
+  .veh-card.active::after{
+    content:""; position:absolute; top:0; left:0; width: 3px; height:100%; background: var(--amber);
+  }
+  .veh-icon{ height: 46px; display:flex; align-items:flex-end; color: var(--text-muted); }
+  .veh-card.active .veh-icon{ color: var(--amber-bright); }
+  .veh-icon svg{ width:100%; height:auto; overflow:visible; }
+
+  .veh-name{
+    font-family:'Oswald', sans-serif; font-weight: 600; font-size: .92rem;
+    text-transform: uppercase; letter-spacing: .01em;
+  }
+  .veh-cap{ font-family:'IBM Plex Mono', monospace; font-size: .72rem; color: var(--text-dim); }
+  .veh-card.active .veh-cap{ color: var(--amber); }
+
+  /* ---------- Detail panel ---------- */
+  .detail-wrap{
+    max-width: 1180px;
+    margin: 2.2rem auto 0;
+    padding: 0 clamp(1.2rem, 4vw, 3rem);
+  }
+  .detail{
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    overflow:hidden;
+  }
+  .detail-head{
+    display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap: 1.2rem;
+    padding: 1.6rem clamp(1.2rem, 3vw, 2.2rem);
+    border-bottom: 1px solid var(--line);
+    background: var(--surface-2);
+  }
+  .detail-head .id{
+    font-family:'IBM Plex Mono', monospace; font-size: .72rem; color: var(--amber);
+    letter-spacing: .1em; text-transform: uppercase; margin-bottom: .5rem; display:block;
+  }
+  .detail-head h3{
+    font-family:'Oswald', sans-serif; font-weight: 700; text-transform: uppercase;
+    font-size: clamp(1.5rem, 3vw, 2.1rem);
+  }
+  .detail-icon{ color: var(--amber-bright); height: 56px; display:flex; align-items:flex-end; flex-shrink:0; }
+  .detail-icon svg{ height:100%; width:auto; }
+
+  .gauge-block{ padding: 1.5rem clamp(1.2rem, 3vw, 2.2rem) .5rem; }
+  .gauge-label{
+    display:flex; justify-content:space-between; font-family:'IBM Plex Mono', monospace;
+    font-size: .72rem; color: var(--text-dim); margin-bottom: .5rem;
+    text-transform: uppercase; letter-spacing: .04em;
+  }
+  .gauge-label b{ color: var(--text-muted); font-weight:500; }
+  .gauge-track{ position:relative; height: 10px; background: var(--surface-2); border: 1px solid var(--line); border-radius: 2px; }
+  .gauge-fill{
+    position:absolute; top:-1px; bottom:-1px;
+    background: linear-gradient(90deg, #B9772E, var(--amber-bright));
+    border-radius: 2px; transition: left .35s ease, width .35s ease;
+  }
+  .gauge-fill.variable{ background: repeating-linear-gradient(45deg, #3a3226, #3a3226 6px, #443a2c 6px, #443a2c 12px); }
+  .gauge-ticks{ display:flex; justify-content:space-between; font-family:'IBM Plex Mono', monospace; font-size: .65rem; color: var(--text-dim); margin-top: .35rem; }
+
+  .spec-grid{
+    display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1px; background: var(--line); margin-top: 1.4rem;
+  }
+  .spec{ background: var(--surface); padding: 1.1rem clamp(1.2rem, 3vw, 2.2rem); }
+  .spec .k{ font-family:'IBM Plex Mono', monospace; font-size: .68rem; color: var(--text-dim); text-transform: uppercase; letter-spacing: .08em; margin-bottom: .4rem; }
+  .spec .v{ font-size: .94rem; color: var(--text); line-height: 1.45; }
+  .spec .v.mono{ font-family:'IBM Plex Mono', monospace; color: var(--amber-bright); font-size: 1rem; }
+
+  .empty-hint{
+    padding: 3rem clamp(1.2rem,3vw,2.2rem); text-align:center;
+    color: var(--text-dim); font-family:'IBM Plex Mono', monospace; font-size: .85rem;
+  }
+
+  footer{
+    max-width: 1180px; margin: 3rem auto 0;
+    padding: 1.4rem clamp(1.2rem, 4vw, 3rem) 0;
+    border-top: 1px solid var(--line);
+    display:flex; justify-content:space-between; flex-wrap:wrap; gap:.5rem;
+    font-family:'IBM Plex Mono', monospace; font-size: .72rem; color: var(--text-dim);
+  }
+
+  @media (max-width: 560px){
+    .lineup{ grid-template-columns: repeat(auto-fill, minmax(122px,1fr)); }
+    .detail-head{ flex-direction: column; }
+    #worldmap-layer svg{ width: 220vw; }
+  }
+</style>
+</head>
+<body>
+
+  <div id="worldmap-layer"><svg id="worldmap-svg" viewBox="0 0 1000 460" xmlns="http://www.w3.org/2000/svg"></svg></div>
+  <div class="map-vignette"></div>
+
+  <div class="page">
+    <div class="topbar">
+      <div class="brand"><span class="mark"></span> Logitrading</div>
+      <div class="url">www.logitrading.com.co</div>
+    </div>
+    <div class="punch-strip" id="punch-strip" aria-hidden="true"></div>
+
+    <div class="hero">
+      <div class="eyebrow">Flota propia y aliada · Red logística internacional</div>
+      <h1>El vehículo <em>exacto</em> para tu carga, donde sea que viaje.</h1>
+      <p>Diez tipos de vehículo, de la 4x4 urbana al trailer modular. Selecciona uno para ver capacidad, volumen, carrocería y dimensiones.</p>
+      <div class="coords"><span class="dot"></span> 04.7110° N, 74.0721° W — BOGOTÁ, COLOMBIA · SEDE DE OPERACIONES</div>
+    </div>
+
+    <div class="fleet-section">
+      <div class="section-label">
+        <h2>Tipos de vehículo</h2>
+        <span id="count-label">10 disponibles</span>
+      </div>
+      <div class="lineup" id="lineup" role="listbox" aria-label="Selecciona un tipo de vehículo"></div>
+    </div>
+
+    <div class="detail-wrap">
+      <div class="detail" id="detail" aria-live="polite"></div>
+    </div>
+
+    <footer>
+      <span>Logitrading · Aliado logístico internacional</span>
+      <span id="footer-selected">Ningún vehículo seleccionado</span>
+    </footer>
+  </div>
+
+<script>
+/* ================= World map background (procedural dot map + trade routes) ================= */
+(function(){
+  const svg = document.getElementById('worldmap-svg');
+  const NS = "http://www.w3.org/2000/svg";
+  const W = 1000, H = 460;
+
+  // Approximate landmass regions as unions of ellipses (stylized, not cartographically precise)
+  const LAND = [
+    // North America
+    {cx:150,cy:135,rx:95,ry:65}, {cx:118,cy:185,rx:38,ry:42}, {cx:98,cy:218,rx:16,ry:22},
+    // Greenland
+    {cx:228,cy:68,rx:32,ry:22},
+    // South America
+    {cx:203,cy:270,rx:52,ry:42}, {cx:188,cy:325,rx:32,ry:50},
+    // Europe
+    {cx:478,cy:110,rx:52,ry:36},
+    // Africa
+    {cx:488,cy:230,rx:62,ry:50}, {cx:498,cy:295,rx:42,ry:50},
+    // Asia
+    {cx:615,cy:110,rx:135,ry:62}, {cx:672,cy:172,rx:105,ry:50}, {cx:598,cy:200,rx:42,ry:50}, {cx:748,cy:210,rx:50,ry:32},
+    // Indonesia / SE Asia archipelago
+    {cx:758,cy:255,rx:46,ry:13},
+    // Australia
+    {cx:780,cy:310,rx:52,ry:32}
+  ];
+
+  function inLand(x,y){
+    for(const e of LAND){
+      const dx=(x-e.cx)/e.rx, dy=(y-e.cy)/e.ry;
+      if(dx*dx+dy*dy<=1) return true;
+    }
+    return false;
+  }
+
+  const frag = document.createDocumentFragment();
+  const STEP = 13;
+  for(let y=20; y<H-10; y+=STEP){
+    for(let x=10; x<W-10; x+=STEP){
+      if(inLand(x,y)){
+        const c = document.createElementNS(NS,'circle');
+        c.setAttribute('cx', x);
+        c.setAttribute('cy', y);
+        c.setAttribute('r', 1.7);
+        c.setAttribute('class','land-dot');
+        frag.appendChild(c);
+      }
+    }
+  }
+  svg.appendChild(frag);
+
+  // Trade hubs + animated routes radiating from Colombia
+  const COLOMBIA = {x:196, y:262, label:"COLOMBIA"};
+  const HUBS = [
+    {x:158, y:150, label:"NORTEAMÉRICA"},
+    {x:475, y:100, label:"EUROPA"},
+    {x:735, y:150, label:"ASIA"},
+    {x:210, y:310, label:"SURAMÉRICA"}
+  ];
+
+  function addHub(pt, big){
+    const g = document.createElementNS(NS,'g');
+    const ring = document.createElementNS(NS,'circle');
+    ring.setAttribute('cx',pt.x); ring.setAttribute('cy',pt.y);
+    ring.setAttribute('r', big?7:5);
+    ring.setAttribute('class','hub-ring');
+    ring.style.animationDelay = (Math.random()*2)+'s';
+    const core = document.createElementNS(NS,'circle');
+    core.setAttribute('cx',pt.x); core.setAttribute('cy',pt.y);
+    core.setAttribute('r', big?2.6:1.9);
+    core.setAttribute('class','hub-core');
+    g.appendChild(ring); g.appendChild(core);
+    svg.appendChild(g);
+  }
+
+  HUBS.forEach(h => {
+    const midx=(COLOMBIA.x+h.x)/2, midy=(COLOMBIA.y+h.y)/2 - 55;
+    const path = document.createElementNS(NS,'path');
+    path.setAttribute('d', `M${COLOMBIA.x},${COLOMBIA.y} Q${midx},${midy} ${h.x},${h.y}`);
+    path.setAttribute('class','route-path');
+    path.style.animationDelay = (Math.random()*4)+'s';
+    svg.appendChild(path);
+    addHub(h,false);
+  });
+  addHub(COLOMBIA,true);
+
+  // Subtle parallax on pointer move (skipped for touch / reduced motion)
+  const layer = document.getElementById('worldmap-layer');
+  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if(!reduce && window.matchMedia('(pointer:fine)').matches){
+    window.addEventListener('mousemove', (e) => {
+      const dx = (e.clientX / window.innerWidth - 0.5) * 14;
+      const dy = (e.clientY / window.innerHeight - 0.5) * 10;
+      svg.style.transform = `translate(${-dx}px, ${-dy}px)`;
+    });
+  }
+})();
+
+/* ================= Punch-hole strip ================= */
+(function(){
+  const strip = document.getElementById('punch-strip');
+  const n = 26;
+  for(let i=0;i<n;i++){
+    const s = document.createElement('span');
+    strip.appendChild(s);
+  }
+})();
+
+/* ================= Icons (stylized, single-weight line art) ================= */
+const ICONS = {
+  box: (w=1) => `<svg viewBox="0 0 ${120*w} 50" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="2.2">
+    <path d="M4 34 H${18*w} V16 H${34*w} L${44*w} 26 V34 H${112*w}" />
+    <rect x="4" y="16" width="${(112*w)-4}" height="18" />
+    <circle cx="${22*w}" cy="40" r="6"/>
+    <circle cx="${96*w}" cy="40" r="6"/>
+  </svg>`,
+  container: () => `<svg viewBox="0 0 170 50" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="2.2">
+    <path d="M2 34 H16 V16 H30 L40 26 V34" />
+    <rect x="46" y="14" width="58" height="20"/>
+    <rect x="106" y="14" width="58" height="20"/>
+    <circle cx="18" cy="40" r="6"/>
+    <circle cx="66" cy="40" r="6"/>
+    <circle cx="86" cy="40" r="6"/>
+    <circle cx="126" cy="40" r="6"/>
+    <circle cx="146" cy="40" r="6"/>
+  </svg>`,
+  tanker: () => `<svg viewBox="0 0 150 50" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="2.2">
+    <path d="M2 34 H16 V16 H30 L40 26 V34" />
+    <rect x="46" y="14" width="98" height="20" rx="10"/>
+    <circle cx="18" cy="40" r="6"/>
+    <circle cx="66" cy="40" r="6"/>
+    <circle cx="86" cy="40" r="6"/>
+    <circle cx="122" cy="40" r="6"/>
+  </svg>`,
+  hopper: () => `<svg viewBox="0 0 150 50" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="2.2">
+    <path d="M2 34 H16 V16 H30 L40 26 V34" />
+    <path d="M46 14 H144 L136 34 H54 Z"/>
+    <circle cx="18" cy="40" r="6"/>
+    <circle cx="66" cy="40" r="6"/>
+    <circle cx="86" cy="40" r="6"/>
+    <circle cx="122" cy="40" r="6"/>
+  </svg>`,
+  lowboy: () => `<svg viewBox="0 0 170 50" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="2.2">
+    <path d="M2 34 H16 V16 H30 L40 26 V34" />
+    <path d="M46 34 V28 H120 V34"/>
+    <path d="M120 20 L132 20 L140 28 V34 H120 Z"/>
+    <circle cx="18" cy="40" r="6"/>
+    <circle cx="58" cy="40" r="5"/>
+    <circle cx="70" cy="40" r="5"/>
+    <circle cx="98" cy="40" r="5"/>
+    <circle cx="110" cy="40" r="5"/>
+    <circle cx="146" cy="40" r="6"/>
+  </svg>`,
+  modular: () => `<svg viewBox="0 0 190 50" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="2.2">
+    <path d="M2 34 H16 V16 H30 L40 26 V34" />
+    <path d="M46 34 V29 H160 V34"/>
+    <circle cx="18" cy="40" r="6"/>
+    <circle cx="54" cy="40" r="5"/>
+    <circle cx="65" cy="40" r="5"/>
+    <circle cx="76" cy="40" r="5"/>
+    <circle cx="112" cy="40" r="5"/>
+    <circle cx="123" cy="40" r="5"/>
+    <circle cx="134" cy="40" r="5"/>
+    <circle cx="166" cy="40" r="6"/>
+  </svg>`
+};
+
+/* ================= Fleet data ================= */
+const FLEET = [
+  { id:"4x4", nombre:"4 x 4", icon: ICONS.box(0.55), cap:"Hasta 1.0 TON", capMin:0, capMax:1, capVariable:false,
+    volumen:"(+/-) 4 – 7 CBM", carroceria:"Furgón · carpado · platón",
+    tipoCarga:"Carga suelta · Bultos · Pallets", dim:"2.0 × 1.40 × 1.5 m" },
+  { id:"turbo", nombre:"Turbo", icon: ICONS.box(0.75), cap:"Hasta 4.5 TON", capMin:0, capMax:4.5, capVariable:false,
+    volumen:"(+/-) 17 – 20 CBM", carroceria:"Furgón · carpado · platón",
+    tipoCarga:"Carga suelta · Bultos · Pallets", dim:"4.5 × 2.0 × 2.1 m" },
+  { id:"600", nombre:"600 Sencillo", icon: ICONS.box(0.9), cap:"Hasta 8 TON", capMin:0, capMax:8, capVariable:false,
+    volumen:"(+/-) 28 – 33 CBM", carroceria:"Furgón · carpado · plancha",
+    tipoCarga:"Carga suelta · Bultos · Pallets · Contenedor de 20'", dim:"5.9 × 2.3 × 2.2 m" },
+  { id:"doble", nombre:"Dobletroque", icon: ICONS.box(1), cap:"Hasta 17 TON", capMin:0, capMax:17, capVariable:false,
+    volumen:"(+/-) 33 – 38 CBM", carroceria:"Furgón · carpado · plancha",
+    tipoCarga:"Carga suelta · Bultos · Pallets · Contenedor de 20'", dim:"7.5 × 2.3 × 2.2 m" },
+  { id:"minimula", nombre:"Minimula Patineta", icon: ICONS.container(), cap:"Hasta 18 TON", capMin:0, capMax:18, capVariable:false,
+    volumen:"(+/-) 67 – 76 CBM", carroceria:"Furgón · carpado · plancha · grillo",
+    tipoCarga:"Carga suelta · bultos · pallets · contenedor de 2x20' (combinados) · contenedor de 40'", dim:"12 × 2.4 × 2.3 m" },
+  { id:"mula", nombre:"Mula", icon: ICONS.container(), cap:"Entre 30 y 35 TON (según No. ejes)", capMin:30, capMax:35, capVariable:false,
+    volumen:"(+/-) 67 – 76 CBM", carroceria:"Furgón · carpado · plancha · grillo",
+    tipoCarga:"Carga suelta · bultos · pallets · contenedor de 2x20' (combinados) · contenedor de 40'", dim:"12 × 2.4 × 2.3 m" },
+  { id:"tanque", nombre:"Carro Tanque / Niñera", icon: ICONS.tanker(), cap:"Entre 18 y 30 TON (según No. ejes)", capMin:18, capMax:30, capVariable:false,
+    volumen:"ND", carroceria:"Tanque · trailer hidráulico o de guaya",
+    tipoCarga:"Líquidos · Vehículos", dim:"12 × 2.4 × 2.4 m" },
+  { id:"tolva", nombre:"Tolva", icon: ICONS.hopper(), cap:"Entre 30 y 35 TON (según No. ejes)", capMin:30, capMax:35, capVariable:false,
+    volumen:"ND", carroceria:"Tolva",
+    tipoCarga:"Granel", dim:"12 × 2.4 × 2.4 m" },
+  { id:"camabaja", nombre:"Cama Baja / Tolva", icon: ICONS.lowboy(), cap:"Según No. de ejes y resolución Mintransporte", capVariable:true,
+    volumen:"ND", carroceria:"Trailer cama baja",
+    tipoCarga:"Cargas extra dimensionadas · extrapesadas", dim:"Según resolución Mintransporte" },
+  { id:"modular", nombre:"Modular", icon: ICONS.modular(), cap:"Según No. de ejes y resolución Mintransporte", capVariable:true,
+    volumen:"ND", carroceria:"Trailer modular",
+    tipoCarga:"Cargas extra dimensionadas · extrapesadas", dim:"Según resolución Mintransporte" },
+];
+
+const SCALE_MAX = 35;
+
+const lineupEl = document.getElementById('lineup');
+const detailEl = document.getElementById('detail');
+const footerSelected = document.getElementById('footer-selected');
+
+FLEET.forEach(v => {
+  const card = document.createElement('button');
+  card.type = 'button';
+  card.className = 'veh-card';
+  card.setAttribute('role','option');
+  card.setAttribute('aria-selected','false');
+  card.dataset.id = v.id;
+  card.innerHTML = `
+    <div class="veh-icon">${v.icon}</div>
+    <div class="veh-name">${v.nombre}</div>
+    <div class="veh-cap">${v.cap.split('(')[0].trim()}</div>
+  `;
+  card.addEventListener('click', () => selectVehicle(v.id));
+  lineupEl.appendChild(card);
+});
+
+function selectVehicle(id){
+  document.querySelectorAll('.veh-card').forEach(c => {
+    const isActive = c.dataset.id === id;
+    c.classList.toggle('active', isActive);
+    c.setAttribute('aria-selected', isActive ? 'true' : 'false');
+  });
+  renderDetail(FLEET.find(v => v.id === id));
+  document.getElementById('detail').scrollIntoView({behavior:'smooth', block:'nearest'});
+}
+
+function renderDetail(v){
+  if(!v){
+    detailEl.innerHTML = `<div class="empty-hint">Selecciona un tipo de vehículo arriba para ver su ficha técnica</div>`;
+    footerSelected.textContent = 'Ningún vehículo seleccionado';
+    return;
+  }
+  footerSelected.textContent = `Seleccionado: ${v.nombre}`;
+
+  let gaugeHtml;
+  if(v.capVariable){
+    gaugeHtml = `
+      <div class="gauge-label"><b>Capacidad de carga</b><span>Variable — según eje y resolución</span></div>
+      <div class="gauge-track"><div class="gauge-fill variable" style="left:0%; width:100%;"></div></div>
+      <div class="gauge-ticks"><span>0 TON</span><span>Definido por Mintransporte</span></div>
+    `;
+  } else {
+    const left = (v.capMin / SCALE_MAX) * 100;
+    const width = Math.max(((v.capMax - v.capMin) / SCALE_MAX) * 100, 2.5);
+    gaugeHtml = `
+      <div class="gauge-label"><b>Capacidad de carga</b><span>Escala de flota · 0–${SCALE_MAX} TON</span></div>
+      <div class="gauge-track"><div class="gauge-fill" style="left:${left}%; width:${width}%;"></div></div>
+      <div class="gauge-ticks"><span>0</span><span>${SCALE_MAX} TON</span></div>
+    `;
+  }
+
+  detailEl.innerHTML = `
+    <div class="detail-head">
+      <div>
+        <span class="id">Ficha técnica</span>
+        <h3>${v.nombre}</h3>
+      </div>
+      <div class="detail-icon">${v.icon}</div>
+    </div>
+    <div class="gauge-block">${gaugeHtml}</div>
+    <div class="spec-grid">
+      <div class="spec"><div class="k">Capacidad de carga</div><div class="v mono">${v.cap}</div></div>
+      <div class="spec"><div class="k">Volumen aprox.</div><div class="v mono">${v.volumen}</div></div>
+      <div class="spec"><div class="k">Carrocería</div><div class="v">${v.carroceria}</div></div>
+      <div class="spec"><div class="k">Tipo de carga</div><div class="v">${v.tipoCarga}</div></div>
+      <div class="spec"><div class="k">Dimensiones (L×A×H)</div><div class="v mono">${v.dim}</div></div>
+    </div>
+  `;
+}
+
+renderDetail(null);
+</script>
+</body>
+</html>
