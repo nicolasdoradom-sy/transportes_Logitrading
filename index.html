@@ -46,6 +46,9 @@ button,input,select,textarea{font:inherit} button{cursor:pointer}
 @media(max-width:680px){.topbar{padding:0 14px}.header-actions .btn{display:none}.hero{display:block}.hero h1{font-size:25px}.fields{grid-template-columns:1fr}.piece-grid{grid-template-columns:1fr 1fr}.cargo-head{display:none}.totals,.rec-grid{grid-template-columns:1fr 1fr}.alt{grid-template-columns:1fr 1fr}}
 
 .app-nav{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px;width:100%;margin:18px 0 22px;padding:6px;background:#0d141f;border:1px solid #26344a;border-radius:14px;position:sticky;top:10px;z-index:30;box-shadow:0 12px 30px rgba(0,0,0,.25)}.app-tab{width:100%;min-width:0;border:1px solid transparent;background:transparent;color:#8f9bad;padding:12px 8px;border-radius:10px;cursor:pointer;font-weight:700;font-size:11px;transition:.2s;display:flex;align-items:center;justify-content:center;gap:7px;white-space:nowrap}.app-tab:hover{background:#151e2b;color:#eef3f8}.app-tab.active{background:linear-gradient(135deg,#ffb25c,#e58216);color:#111821;box-shadow:0 7px 20px rgba(245,154,47,.2)}.app-tab.tabhidden{display:none!important}.app-tab .num{width:20px;height:20px;flex:0 0 20px;border-radius:50%;display:grid;place-items:center;border:1px solid currentColor;font-size:9px}.panel{display:none!important;animation:panelIn .25s ease}.panel.active{display:block!important}@keyframes panelIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}.dashboard{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;margin:0 0 16px}.dash-card{background:#111925;border:1px solid #27344a;border-radius:12px;padding:12px}.dash-card span{display:block;color:#7f8da2;font-size:9px;text-transform:uppercase;letter-spacing:.08em}.dash-card strong{display:block;margin-top:5px;font-size:18px}.status-dot{display:inline-block!important;width:8px!important;height:8px!important;border-radius:50%;background:#657184;margin-right:5px;vertical-align:middle}.status-dot.green{background:#35d07f}.status-dot.yellow{background:#f3bb45}.status-dot.red{background:#f45b69}.panel-next{display:flex;justify-content:space-between;gap:8px;margin-top:18px;padding-top:14px;border-top:1px solid #253249}.panel-next .btn{min-width:130px}@media(max-width:1000px){.app-nav{grid-template-columns:repeat(4,minmax(0,1fr));position:static}.app-tab{justify-content:center}}@media(max-width:600px){.dashboard{grid-template-columns:1fr 1fr}.app-nav{grid-template-columns:repeat(2,minmax(0,1fr));position:static}.app-tab{justify-content:center}}
+.inline-carga-suelta{display:block!important;margin-top:18px}
+.inline-carga-suelta .panel-next{margin-top:18px}
+
 
 .final-recommendation{margin:16px 0;border:1px solid #3a465a;border-radius:16px;background:linear-gradient(135deg,#121c2a 0%,#0d141e 100%);overflow:hidden;box-shadow:0 10px 30px rgba(0,0,0,.18)}
 .final-rec-title{display:flex;justify-content:space-between;align-items:center;padding:12px 16px;background:linear-gradient(90deg,rgba(245,154,47,.16),rgba(245,154,47,.03));border-bottom:1px solid #2d394c;font-size:11px;letter-spacing:.08em;color:#ffae45}.final-rec-title b{font-size:10px;color:#dce4ed;letter-spacing:.04em}
@@ -53,14 +56,14 @@ button,input,select,textarea{font:inherit} button{cursor:pointer}
 @media(max-width:700px){.final-rec-body{grid-template-columns:1fr}.final-rec-grid{grid-template-columns:repeat(2,1fr)}}
 
 .app-nav-six{
-  grid-template-columns:repeat(6,minmax(0,1fr)) !important;
+  grid-template-columns:repeat(4,minmax(0,1fr)) !important;
 }
 .app-nav-six .app-tab{
   width:100%;
   justify-content:center;
 }
 @media (max-width: 900px){
-  .app-nav-six{grid-template-columns:repeat(3,minmax(0,1fr)) !important;}
+  .app-nav-six{grid-template-columns:repeat(2,minmax(0,1fr)) !important;}
 }
 @media (max-width: 560px){
   .app-nav-six{grid-template-columns:repeat(2,minmax(0,1fr)) !important;}
@@ -109,7 +112,7 @@ button,input,select,textarea{font:inherit} button{cursor:pointer}
   <div class="hero">
     <div><div class="eyebrow">Panel de decisión logística</div><h1>Selección inteligente de transporte</h1><p>Registra la operación y una o varias referencias de carga. El sistema convierte unidades, calcula peso, volumen y área de piso, valida dimensiones y condiciones especiales, y recomienda la combinación de vehículos más pequeña que cumpla los requisitos.</p></div>
   </div>
-  <div class="app-nav app-nav-six" id="appNav"><button class="app-tab active" data-panel="1" onclick="showPanel(1)"><span class="num">1</span> Servicio</button><button class="app-tab" data-panel="2" onclick="showPanel(2)"><span class="num">2</span> Contenedor</button><button class="app-tab" data-panel="3" onclick="showPanel(3)"><span class="num">3</span> Carga</button><button class="app-tab" data-panel="4" onclick="showPanel(4)"><span class="num">4</span> Especiales</button><button class="app-tab" data-panel="5" onclick="showPanel(5)"><span class="num">5</span> Analizador</button><button class="app-tab" data-panel="7" onclick="showPanel(7);generarCotizacion()"><span class="num">6</span> Cotización final</button></div><div class="dashboard"><div class="dash-card"><span>Peso total</span><strong id="dashTon">0.00 t</strong></div><div class="dash-card"><span>Cubicaje</span><strong id="dashM3">0.00 m³</strong></div><div class="dash-card"><span>Referencias</span><strong id="dashRefs">0</strong></div><div class="dash-card"><span>Estado</span><strong><i id="dashDot" class="status-dot"></i><span id="dashStatus">Pendiente</span></strong></div></div>
+  <div class="app-nav app-nav-six" id="appNav"><button class="app-tab active" data-panel="1" onclick="showPanel(1)"><span class="num">1</span> Servicio</button><button class="app-tab tabhidden" data-panel="3" onclick="showPanel(3)"><span class="num">3</span> Carga</button><button class="app-tab" data-panel="4" onclick="showPanel(4)"><span class="num">4</span> Especiales</button><button class="app-tab" data-panel="5" onclick="showPanel(5)"><span class="num">5</span> Analizador</button><button class="app-tab" data-panel="7" onclick="showPanel(7);generarCotizacion()"><span class="num">6</span> Cotización final</button></div><div class="dashboard"><div class="dash-card"><span>Peso total</span><strong id="dashTon">0.00 t</strong></div><div class="dash-card"><span>Cubicaje</span><strong id="dashM3">0.00 m³</strong></div><div class="dash-card"><span>Referencias</span><strong id="dashRefs">0</strong></div><div class="dash-card"><span>Estado</span><strong><i id="dashDot" class="status-dot"></i><span id="dashStatus">Pendiente</span></strong></div></div>
 
   <div class="grid">
     <section class="card panel" id="panel1">
@@ -126,6 +129,10 @@ button,input,select,textarea{font:inherit} button{cursor:pointer}
         <div class="field"><label>Devolución de vacío</label><select id="vacio"><option>No</option><option>Sí</option></select></div>
         <div class="field"><label>Lugar de devolución</label><input id="lugarVacio" placeholder="Puerto, patio o ciudad"></div>
       </div>
+
+      <!-- Carga suelta se muestra aquí, debajo de la información general -->
+      <div id="inlineServicioExtra"></div>
+
     <div class="panel-next"><span></span><button class="btn primary" onclick="irDesdeServicio()">Continuar →</button></div></section>
 
     <section class="card panel" id="panel2">
@@ -143,6 +150,7 @@ button,input,select,textarea{font:inherit} button{cursor:pointer}
       <div class="footer-note">Para contenedores, el peso bruto se calcula como mercancía + tara y se valida frente al equipo portacontenedor correspondiente.</div>
     <div class="panel-next"><button class="btn ghost" onclick="showPanel(1)">← Atrás</button><button class="btn primary" onclick="showPanel(3)">Continuar →</button></div></section>
 
+    <div id="panel3Placeholder"></div>
     <section class="card full panel" id="panel3">
       <div class="section-title"><div><h2>3. Piezas y cubicaje</h2><div class="sub">Agrega cada referencia o grupo de piezas. El sistema reinicia el formulario de pieza al guardar y permite editar cualquier registro.</div></div><div style="display:flex;gap:8px"><button class="btn" onclick="document.getElementById('excelInput').click()">📎 Importar Excel</button><input type="file" id="excelInput" accept=".xlsx,.xls,.csv" style="display:none" onchange="importarExcel(event)"><button class="btn primary" onclick="agregarPieza()">+ Agregar otra pieza o grupo</button></div></div>
       <div class="footer-note" id="excelHelp" style="margin-bottom:14px">El Excel debe tener columnas: <b>Descripción, Cantidad, Largo, Ancho, Alto, Unidad (cm/m), Peso, Unidad de peso (kg/ton)</b>. La primera fila debe ser el encabezado. Filas sin largo/ancho/alto/peso válidos se ignoran.</div>
@@ -247,7 +255,26 @@ button,input,select,textarea{font:inherit} button{cursor:pointer}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script>
 
-function showPanel(n){document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));const p=document.getElementById('panel'+n);if(p)p.classList.add('active');document.querySelectorAll('.app-tab').forEach(t=>t.classList.toggle('active',Number(t.dataset.panel)===n));if(n===2)toggleContainer();updateDashboard();window.scrollTo({top:0,behavior:'smooth'});}
+function showPanel(n){
+  if((n===2 || n===3) && $("tipoCarga")){
+    showPanel(1);
+    toggleContainer();
+    setTimeout(()=>scrollToId("inlineServicioExtra"),80);
+    return;
+  }
+
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  const p=document.getElementById('panel'+n);
+  if(p)p.classList.add('active');
+
+  document.querySelectorAll('.app-tab').forEach(tab=>{
+    tab.classList.toggle('active',Number(tab.dataset.panel)===n);
+  });
+
+  if(n===1) toggleContainer();
+  updateDashboard();
+  window.scrollTo({top:0,behavior:'smooth'});
+}
 function updateDashboard(){const t=typeof totals==='function'?totals():{ton:0,m3:0,refs:0};const a=typeof lastAnalysis!=='undefined'?lastAnalysis:null;const q=id=>document.getElementById(id);if(q('dashTon'))q('dashTon').textContent=(t.ton||0).toFixed(2)+' t';if(q('dashM3'))q('dashM3').textContent=(t.m3||0).toFixed(2)+' m³';if(q('dashRefs'))q('dashRefs').textContent=t.refs||0;if(a&&typeof validation==='function'){const v=validation(a);q('dashStatus').textContent=v==='green'?'Aprobado':v==='yellow'?'Revisar':'No compatible';q('dashDot').className='status-dot '+v;}else{q('dashStatus').textContent='Pendiente';q('dashDot').className='status-dot';}}
 
 const BASE_VEHICLES = [
@@ -280,17 +307,42 @@ function $(id){return document.getElementById(id)}
 function num(id){return parseFloat($(id).value)||0}
 function scrollToId(id){$(id).scrollIntoView({behavior:"smooth"})}
 function toggleContainer(){
-  const esContenedor = $("tipoCarga").value==="Contenedor";
-  const navTab2 = document.querySelector('.app-tab[data-panel="2"]');
-  if(navTab2) navTab2.classList.toggle('tabhidden', !esContenedor);
-  const cc = document.getElementById("containerCard");
-  if(cc) cc.style.opacity = esContenedor ? "1" : ".62";
+  const tipo = $("tipoCarga").value;
+  const destino = $("inlineServicioExtra");
+
+  const panelContenedor = $("panel2");
+  const panelCarga = $("panel3");
+
+  if(!destino || !panelContenedor || !panelCarga) return;
+
+  // Ambos formularios se muestran dentro de la pestaña Servicio.
+  // Solo se coloca debajo el que corresponde a la selección.
+  panelContenedor.classList.remove("active","inline-carga-suelta");
+  panelCarga.classList.remove("active","inline-carga-suelta");
+
+  if(tipo === "Contenedor"){
+    destino.appendChild(panelContenedor);
+    panelContenedor.classList.add("active","inline-carga-suelta");
+  }else if(tipo === "Carga suelta"){
+    destino.appendChild(panelCarga);
+    panelCarga.classList.add("active","inline-carga-suelta");
+  }
 }
 function irDesdeServicio(){
-  if($("tipoCarga").value==="Contenedor") showPanel(2); else showPanel(3);
+  const tipo = $("tipoCarga").value;
+
+  if(tipo === "Contenedor" || tipo === "Carga suelta"){
+    toggleContainer();
+    setTimeout(()=>scrollToId("inlineServicioExtra"),80);
+    return;
+  }
+
+  showPanel(4);
 }
 function volverACarga(){
-  if($("tipoCarga").value==="Contenedor") showPanel(2); else showPanel(1);
+  showPanel(1);
+  toggleContainer();
+  setTimeout(()=>scrollToId("inlineServicioExtra"),80);
 }
 function unitToM(v,u){return u==="Centímetros"?v/100:v}
 function weightToT(v,u){return u==="kg"?v/1000:v}
