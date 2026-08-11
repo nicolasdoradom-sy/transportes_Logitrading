@@ -19,7 +19,21 @@ button,input,select,textarea{font:inherit} button{cursor:pointer}
 .header-actions{display:flex;gap:8px}.btn{border:1px solid var(--line);background:#151d29;color:var(--text);padding:10px 14px;border-radius:10px;font-weight:750}.btn:hover{border-color:#42516b}.btn.primary{background:var(--orange);color:#15100a;border-color:var(--orange)}.btn.danger{background:#35171a;border-color:#6b292d;color:#ffb7b8}.btn.ghost{background:transparent}
 .container{max-width:1280px;margin:0 auto;padding:28px 22px 80px}
 .hero{display:flex;justify-content:space-between;gap:24px;align-items:end;margin-bottom:22px}.eyebrow{color:var(--orange2);font-size:12px;font-weight:900;letter-spacing:1.7px;text-transform:uppercase}.hero h1{font-size:32px;margin:7px 0 8px;letter-spacing:-.7px}.hero p{margin:0;color:var(--muted);max-width:780px;line-height:1.55}
-.grid{display:grid;grid-template-columns:1.05fr .95fr;gap:18px}.full{grid-column:1/-1}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;align-items:start}.full{grid-column:1/-1}
+.service-side-active{display:block!important;grid-column:2!important;grid-row:1!important}
+#panel3Placeholder{display:none!important}
+#panel1{grid-column:1}
+#panel1.active{display:block!important;grid-column:1}
+@media(max-width:1050px){.grid{grid-template-columns:1fr}.service-side-active,#panel1.active{grid-column:1!important}.full{grid-column:auto}}
+.service-continue{grid-column:1/-1;display:flex;justify-content:center;align-items:center;margin:2px 0 6px;padding:4px 0 2px}
+.service-continue-btn{min-width:190px;padding:13px 28px;font-size:15px}
+/* Especiales centrado */
+#panel4{grid-column:1/-1!important;width:100%;max-width:1050px;margin:0 auto;}
+#panel4 .section-title{justify-content:center;text-align:center;}
+#panel4 .section-title > div{width:100%;}
+#panel4 .fields{max-width:920px;margin:0 auto;}
+
+@media(max-width:1050px){.service-continue{grid-column:1!important}}
 .card{background:linear-gradient(180deg,#141c28,#111823);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px}
 .card h2{margin:0 0 4px;font-size:18px}.sub{color:var(--muted);font-size:13px;margin-bottom:18px}.section-title{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
 .fields{display:grid;grid-template-columns:repeat(2,1fr);gap:13px}.field{display:flex;flex-direction:column;gap:7px}.field.fullw{grid-column:1/-1}.field label{font-size:12px;color:#b8c1cf;font-weight:800}.field input,.field select,.field textarea{width:100%;border:1px solid #2b374b;background:#0d131d;color:var(--text);padding:11px 12px;border-radius:10px;outline:none}.vehicle-photo{width:150px;height:82px;border:1px solid #2b374b;border-radius:10px;background:linear-gradient(180deg,#111925,#0c121b);display:flex;align-items:center;justify-content:center;overflow:hidden}
@@ -42,11 +56,11 @@ button,input,select,textarea{font:inherit} button{cursor:pointer}
 .quote{background:#0c121b;border:1px solid var(--line);border-radius:14px;padding:18px}.quote-head{display:flex;justify-content:space-between;align-items:center}.quote table{width:100%;border-collapse:collapse;margin-top:12px;font-size:12px}.quote th,.quote td{padding:10px;border-bottom:1px solid var(--line);text-align:left}.quote th{color:#8e9aad;font-size:10px;text-transform:uppercase}.empty{color:var(--muted);padding:20px;text-align:center;border:1px dashed #334158;border-radius:12px}
 .progress{display:flex;gap:5px;margin:8px 0 22px}.step{height:4px;flex:1;border-radius:9px;background:#202b3b}.step.on{background:var(--orange)}
 .footer-note{color:#68758a;font-size:11px;text-align:center;margin-top:18px;line-height:1.5}
-@media(max-width:1050px){.grid{grid-template-columns:1fr}.full{grid-column:auto}.piece-grid,.cargo-head{grid-template-columns:1fr 1fr 1fr}.piece-extra{grid-template-columns:repeat(2,1fr)}.totals,.rec-grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:1050px){.piece-grid,.cargo-head{grid-template-columns:1fr 1fr 1fr}.piece-extra{grid-template-columns:repeat(2,1fr)}.totals,.rec-grid{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:680px){.topbar{padding:0 14px}.header-actions .btn{display:none}.hero{display:block}.hero h1{font-size:25px}.fields{grid-template-columns:1fr}.piece-grid{grid-template-columns:1fr 1fr}.cargo-head{display:none}.totals,.rec-grid{grid-template-columns:1fr 1fr}.alt{grid-template-columns:1fr 1fr}}
 
 .app-nav{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px;width:100%;margin:18px 0 22px;padding:6px;background:#0d141f;border:1px solid #26344a;border-radius:14px;position:sticky;top:10px;z-index:30;box-shadow:0 12px 30px rgba(0,0,0,.25)}.app-tab{width:100%;min-width:0;border:1px solid transparent;background:transparent;color:#8f9bad;padding:12px 8px;border-radius:10px;cursor:pointer;font-weight:700;font-size:11px;transition:.2s;display:flex;align-items:center;justify-content:center;gap:7px;white-space:nowrap}.app-tab:hover{background:#151e2b;color:#eef3f8}.app-tab.active{background:linear-gradient(135deg,#ffb25c,#e58216);color:#111821;box-shadow:0 7px 20px rgba(245,154,47,.2)}.app-tab.tabhidden{display:none!important}.app-tab .num{width:20px;height:20px;flex:0 0 20px;border-radius:50%;display:grid;place-items:center;border:1px solid currentColor;font-size:9px}.panel{display:none!important;animation:panelIn .25s ease}.panel.active{display:block!important}@keyframes panelIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}.dashboard{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;margin:0 0 16px}.dash-card{background:#111925;border:1px solid #27344a;border-radius:12px;padding:12px}.dash-card span{display:block;color:#7f8da2;font-size:9px;text-transform:uppercase;letter-spacing:.08em}.dash-card strong{display:block;margin-top:5px;font-size:18px}.status-dot{display:inline-block!important;width:8px!important;height:8px!important;border-radius:50%;background:#657184;margin-right:5px;vertical-align:middle}.status-dot.green{background:#35d07f}.status-dot.yellow{background:#f3bb45}.status-dot.red{background:#f45b69}.panel-next{display:flex;justify-content:space-between;gap:8px;margin-top:18px;padding-top:14px;border-top:1px solid #253249}.panel-next .btn{min-width:130px}@media(max-width:1000px){.app-nav{grid-template-columns:repeat(4,minmax(0,1fr));position:static}.app-tab{justify-content:center}}@media(max-width:600px){.dashboard{grid-template-columns:1fr 1fr}.app-nav{grid-template-columns:repeat(2,minmax(0,1fr));position:static}.app-tab{justify-content:center}}
-.inline-carga-suelta{display:block!important;margin-top:18px}
+.inline-carga-suelta{display:block!important}
 .inline-carga-suelta .panel-next{margin-top:18px}
 
 
@@ -115,13 +129,13 @@ button,input,select,textarea{font:inherit} button{cursor:pointer}
   <div class="app-nav app-nav-six" id="appNav"><button class="app-tab active" data-panel="1" onclick="showPanel(1)"><span class="num">1</span> Servicio</button><button class="app-tab tabhidden" data-panel="3" onclick="showPanel(3)"><span class="num">3</span> Carga</button><button class="app-tab" data-panel="4" onclick="showPanel(4)"><span class="num">4</span> Especiales</button><button class="app-tab" data-panel="5" onclick="showPanel(5)"><span class="num">5</span> Analizador</button><button class="app-tab" data-panel="7" onclick="showPanel(7);generarCotizacion()"><span class="num">6</span> Cotización final</button></div><div class="dashboard"><div class="dash-card"><span>Peso total</span><strong id="dashTon">0.00 t</strong></div><div class="dash-card"><span>Cubicaje</span><strong id="dashM3">0.00 m³</strong></div><div class="dash-card"><span>Referencias</span><strong id="dashRefs">0</strong></div><div class="dash-card"><span>Estado</span><strong><i id="dashDot" class="status-dot"></i><span id="dashStatus">Pendiente</span></strong></div></div>
 
   <div class="grid">
-    <section class="card panel" id="panel1">
-      <div class="section-title"><div><h2>1. Información general</h2><div class="sub">Datos necesarios para solicitar la tarifa al transportador.</div></div></div>
+    <section class="card panel active" id="panel1">
+      <div class="section-title"><div><h2>1. Información general</h2><div class="sub">Datos necesarios para solicitar la tarifa al transportador. A la derecha se muestra Piezas o Contenedor según la selección.</div></div></div>
       <div class="fields">
         <div class="field"><label>Tipo de operación</label><select id="operacion"><option>Importación</option><option>Exportación</option><option>Nacional</option></select></div>
         <div class="field"><label>Modalidad</label><select id="modalidad"><option>OTM</option><option>Carga nacionalizada</option><option>Continuación de viaje</option><option>Tránsito aduanero</option></select></div>
         <div class="field"><label>Tipo de servicio</label><select id="servicio"><option>Urbano</option><option>Nacional</option><option>Expreso</option><option>Consolidado</option></select></div>
-        <div class="field"><label>Tipo de carga</label><select id="tipoCarga" onchange="toggleContainer()"><option>Carga suelta</option><option>Contenedor</option><option>Proyecto</option><option>Refrigerada</option></select></div>
+        <div class="field"><label>Tipo de carga</label><select id="tipoCarga" onchange="toggleContainer()"><option value="" selected disabled>Seleccione tipo de carga</option><option>Carga suelta</option><option>Contenedor</option><option>Proyecto</option><option>Refrigerada</option></select></div>
         <div class="field"><label>Origen</label><input id="origen" placeholder="Ciudad / puerto / aeropuerto / zona franca"></div>
         <div class="field"><label>Destino</label><input id="destino" placeholder="Ciudad y dirección"></div>
         <div class="field fullw"><label>Dirección de recogida</label><input id="recogida" placeholder="Dirección exacta, muelle o punto de cargue"></div>
@@ -130,10 +144,7 @@ button,input,select,textarea{font:inherit} button{cursor:pointer}
         <div class="field"><label>Lugar de devolución</label><input id="lugarVacio" placeholder="Puerto, patio o ciudad"></div>
       </div>
 
-      <!-- Carga suelta se muestra aquí, debajo de la información general -->
-      <div id="inlineServicioExtra"></div>
-
-    <div class="panel-next"><span></span><button class="btn primary" onclick="irDesdeServicio()">Continuar →</button></div></section>
+    </section>
 
     <section class="card panel" id="panel2">
       <div class="section-title"><div><h2>2. Contenedor</h2><div class="sub">Se activa cuando la carga viene en contenedor.</div></div></div>
@@ -148,7 +159,7 @@ button,input,select,textarea{font:inherit} button{cursor:pointer}
         <div class="field"><label>Patio / ciudad devolución</label><input id="contPatio"></div>
       </div>
       <div class="footer-note">Para contenedores, el peso bruto se calcula como mercancía + tara y se valida frente al equipo portacontenedor correspondiente.</div>
-    <div class="panel-next"><button class="btn ghost" onclick="showPanel(1)">← Atrás</button><button class="btn primary" onclick="showPanel(3)">Continuar →</button></div></section>
+    </section>
 
     <div id="panel3Placeholder"></div>
     <section class="card full panel" id="panel3">
@@ -181,7 +192,11 @@ button,input,select,textarea{font:inherit} button{cursor:pointer}
         <div class="metric"><span>Área de piso</span><strong id="totalArea">0.00 m²</strong></div>
         <div class="metric"><span>Referencias</span><strong id="totalRefs">0</strong></div>
       </div>
-    <div class="panel-next"><button class="btn ghost" onclick="volverACarga()">← Atrás</button><button class="btn primary" onclick="showPanel(4)">Continuar →</button></div></section>
+    </section>
+
+    <div id="servicioContinue" class="service-continue">
+      <button class="btn primary service-continue-btn" type="button" onclick="continuarServicio()">Continuar →</button>
+    </div>
 
     <section class="card panel" id="panel4">
       <div class="section-title"><div><h2>4. Características especiales</h2><div class="sub">Condiciones que pueden cambiar la recomendación.</div></div></div>
@@ -256,10 +271,26 @@ button,input,select,textarea{font:inherit} button{cursor:pointer}
 <script>
 
 function showPanel(n){
+  // Limpiar los paneles dinámicos exclusivos de Servicio cuando
+  // el usuario cambia a otra etapa. Así Contenedor/Piezas y el botón
+  // "Continuar" nunca aparecen en Especiales, Analizador o Cotización.
+  const panelContenedor = $("panel2");
+  const panelCarga = $("panel3");
+  const serviceContinue = $("servicioContinue");
+
+  if(n !== 1){
+    panelContenedor?.classList.remove("active","inline-carga-suelta","service-side-active");
+    panelCarga?.classList.remove("active","inline-carga-suelta","service-side-active");
+    if(serviceContinue) serviceContinue.style.display = "none";
+  }else{
+    if(serviceContinue) serviceContinue.style.display = "flex";
+  }
+
   if((n===2 || n===3) && $("tipoCarga")){
     showPanel(1);
     toggleContainer();
-    setTimeout(()=>scrollToId("inlineServicioExtra"),80);
+    const tipo = $("tipoCarga").value;
+    setTimeout(()=>scrollToId(tipo === "Contenedor" ? "panel2" : "panel3"),80);
     return;
   }
 
@@ -308,32 +339,61 @@ function num(id){return parseFloat($(id).value)||0}
 function scrollToId(id){$(id).scrollIntoView({behavior:"smooth"})}
 function toggleContainer(){
   const tipo = $("tipoCarga").value;
-  const destino = $("inlineServicioExtra");
-
+  const serviceContinue = $("servicioContinue");
+  if(serviceContinue) serviceContinue.style.display = "flex";
   const panelContenedor = $("panel2");
   const panelCarga = $("panel3");
 
-  if(!destino || !panelContenedor || !panelCarga) return;
+  if(!panelContenedor || !panelCarga) return;
 
-  // Ambos formularios se muestran dentro de la pestaña Servicio.
-  // Solo se coloca debajo el que corresponde a la selección.
-  panelContenedor.classList.remove("active","inline-carga-suelta");
-  panelCarga.classList.remove("active","inline-carga-suelta");
+  // Al entrar por primera vez a Servicio no mostramos ningún formulario
+  // secundario. Aparece únicamente después de que el usuario seleccione
+  // explícitamente el tipo de carga.
+  panelContenedor.classList.remove("active","inline-carga-suelta","service-side-active");
+  panelCarga.classList.remove("active","inline-carga-suelta","service-side-active");
+
+  if(!tipo) return;
 
   if(tipo === "Contenedor"){
-    destino.appendChild(panelContenedor);
-    panelContenedor.classList.add("active","inline-carga-suelta");
+    panelContenedor.classList.add("inline-carga-suelta","service-side-active");
   }else if(tipo === "Carga suelta"){
-    destino.appendChild(panelCarga);
-    panelCarga.classList.add("active","inline-carga-suelta");
+    panelCarga.classList.add("inline-carga-suelta","service-side-active");
   }
 }
+function continuarServicio(){
+  const tipo = $("tipoCarga").value;
+
+  if(!tipo){
+    alert("Primero selecciona el tipo de carga.");
+    $("tipoCarga").focus();
+    return;
+  }
+
+  if(tipo === "Carga suelta" && (!pieces || pieces.length === 0)){
+    alert("Agrega al menos una pieza antes de continuar.");
+    const p = $("panel3");
+    if(p) p.scrollIntoView({behavior:"smooth",block:"start"});
+    return;
+  }
+
+  if(tipo === "Contenedor"){
+    const peso = num("contPeso");
+    if(!peso){
+      alert("Ingresa el peso de la mercancía sin tara antes de continuar.");
+      $("contPeso")?.focus();
+      return;
+    }
+  }
+
+  showPanel(4);
+}
+
 function irDesdeServicio(){
   const tipo = $("tipoCarga").value;
 
   if(tipo === "Contenedor" || tipo === "Carga suelta"){
     toggleContainer();
-    setTimeout(()=>scrollToId("inlineServicioExtra"),80);
+    setTimeout(()=>scrollToId(tipo === "Contenedor" ? "panel2" : "panel3"),80);
     return;
   }
 
@@ -342,7 +402,8 @@ function irDesdeServicio(){
 function volverACarga(){
   showPanel(1);
   toggleContainer();
-  setTimeout(()=>scrollToId("inlineServicioExtra"),80);
+  const tipo = $("tipoCarga").value;
+  setTimeout(()=>scrollToId(tipo === "Contenedor" ? "panel2" : "panel3"),80);
 }
 function unitToM(v,u){return u==="Centímetros"?v/100:v}
 function weightToT(v,u){return u==="kg"?v/1000:v}
@@ -679,7 +740,7 @@ function verFicha(i){
 function cerrarFicha(){$("vehicleModalOverlay").classList.remove("open");}
 function restaurarVehiculos(){if(confirm("¿Restaurar la tabla maestra a los valores base?")){vehicles=BASE_VEHICLES.map(v=>({...v}));renderVehicles();}}
 function reiniciarTodo(){if(!confirm("Esto borrará la solicitud, las piezas y el análisis. ¿Continuar?"))return;pieces=[];lastAnalysis=null;document.querySelectorAll("input").forEach(i=>{if(i.type!=="checkbox")i.value=""});document.querySelectorAll("select").forEach(s=>s.selectedIndex=0);$("pCant").value=1;$("contCant").value=1;renderPieces();$("alerts").innerHTML='<div class="alert blue">Solicitud reiniciada. Puedes empezar una nueva.</div>';$("recommendation").innerHTML="";$("quote").innerHTML='<div class="empty">Aún no hay cotización.</div>';toggleContainer();window.scrollTo({top:0,behavior:"smooth"})}
-renderVehicles();renderPieces();toggleContainer();calcPiecePreview();
+renderVehicles();renderPieces();calcPiecePreview();
 document.addEventListener("input",updateDashboard);document.addEventListener("change",updateDashboard);
 </script>
 </body>
