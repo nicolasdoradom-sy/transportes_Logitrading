@@ -524,7 +524,7 @@ function generarCotizacion(guardar=false){
   const totalCotizado = venta || (costo+sello+devol+otros+Math.max(0,utilidad));
   const margenPct = venta ? (utilidad/venta*100) : 0;
 
-  $("quote").innerHTML=`<div class="quote-head executive-head"><div class="quote-brand"><img src="assets/logitrading-logo.png" alt="Logitrading" class="quote-logo"><div><div class="eyebrow">RESUMEN EJECUTIVO</div><h2>Cotización de transporte</h2><div class="quote-meta">${esc(op)} · ${esc(mod)} · ${esc(serv)} · ${esc(fecha)}</div></div></div><span class="badge ${val.level}">${val.level.toUpperCase()}</span></div>
+  $("quote").innerHTML=`<div class="quote-head executive-head"><div class="quote-brand"><img src="assets/logitrading-logo.png?v=4" alt="Logitrading" class="quote-logo"><div><div class="eyebrow">RESUMEN EJECUTIVO</div><h2>Cotización de transporte</h2><div class="quote-meta">${esc(op)} · ${esc(mod)} · ${esc(serv)} · ${esc(fecha)}</div></div></div><span class="badge ${val.level}">${val.level.toUpperCase()}</span></div>
   <div class="final-recommendation">
     <div class="final-rec-title"><span>VEHÍCULO RECOMENDADO</span><b>${val.level==="green"?"✓ MEJOR AJUSTE":val.level==="yellow"?"⚠ REVISAR ANTES DE COTIZAR":"✕ REVISIÓN NECESARIA"}</b></div>
     <div class="final-rec-body">
