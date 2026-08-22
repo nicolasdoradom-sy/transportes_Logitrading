@@ -244,7 +244,9 @@ function findPdfNumber(text,names){
 }
 function findPdfDimensions(text){
  const match=/([0-9][0-9.,]*)\s*[x×*]\s*([0-9][0-9.,]*)\s*[x×*]\s*([0-9][0-9.,]*)\s*(mm|cm|m)?/i.exec(text);
- return match?{L:parseNumber(match[1]),W:parseNumber(match[2]),H:parseNumber(match[3]),unit:(match[4]||"").toLowerCase()}:null;
+ if(match)return {L:parseNumber(match[1]),W:parseNumber(match[2]),H:parseNumber(match[3]),unit:(match[4]||"").toLowerCase(),index:match.index,end:match.index+match[0].length};
+ const labelled=/\b(?:largo|length|l)\s*:\s*([0-9][0-9.,]*)\s+(?:ancho|width|w|a)\s*:\s*([0-9][0-9.,]*)\s+(?:alto|height|h)\s*:\s*([0-9][0-9.,]*)\s*(mm|cm|m)?/i.exec(text);
+ return labelled?{L:parseNumber(labelled[1]),W:parseNumber(labelled[2]),H:parseNumber(labelled[3]),unit:(labelled[4]||"").toLowerCase(),index:labelled.index,end:labelled.index+labelled[0].length}:null;
 }
 function convertPdfMeasurement(measurement,defaultUnit){
  if(!measurement||!Number.isFinite(measurement.value))return NaN;
@@ -267,7 +269,7 @@ function pdfRecord(text,index){
  const normalized=normalizePdfText(text);
  const dimensions=findPdfDimensions(normalized);
  const record={
-  desc:`Referencia PDF ${index}`,
+  desc:`Ítem ${index}`,
   q:findPdfMeasurement(normalized,["cantidad","cant","unidades","units","quantity","qty"]),
   L:findPdfMeasurement(normalized,["largo","longitud","length","long"]),
   W:findPdfMeasurement(normalized,["ancho","width","wide"]),
@@ -276,6 +278,19 @@ function pdfRecord(text,index){
  };
  if(dimensions){record.L=record.L||{value:dimensions.L,unit:dimensions.unit};record.W=record.W||{value:dimensions.W,unit:dimensions.unit};record.H=record.H||{value:dimensions.H,unit:dimensions.unit}}
  if(!record.wt){const weightMatch=/([0-9][0-9.,]*)\s*(kg|lb|lbs|t|ton(?:eladas?)?)(?:\b|$)/i.exec(normalized);if(weightMatch)record.wt={value:parseNumber(weightMatch[1]),unit:weightMatch[2].toLowerCase()}}
+ if(dimensions){
+  const beforeDimensions=normalized.slice(0,dimensions.index).trim();
+  const quantityMatches=[...beforeDimensions.matchAll(/\b(\d+(?:[.,]\d+)?)\b/g)];
+  const quantityMatch=quantityMatches.length?quantityMatches[quantityMatches.length-1]:null;
+  const rowNumber=/^\d+\s+/.test(beforeDimensions);
+  if(quantityMatch && !(quantityMatches.length===1 && rowNumber))record.q={value:parseNumber(quantityMatch[1]),unit:""};
+  const withoutQuantity=quantityMatch?beforeDimensions.slice(0,quantityMatch.index).trim():beforeDimensions;
+  const description=withoutQuantity.replace(rowNumber?/^\d+\s+/:/^\s+/,"").trim();
+  if(description)record.desc=description;
+  const afterDimensions=normalized.slice(dimensions.end);
+  const weights=[...afterDimensions.matchAll(/([0-9][0-9.,]*)\s*(kg|lb|lbs|t|ton(?:eladas?)?)/gi)];
+  if(weights.length)record.wt={value:parseNumber(weights[0][1]),unit:weights[0][2].toLowerCase()};
+ }
  const dimensionsUnit=/\b(m|metro|metros)\b/i.test(normalized)?"m":"cm";
  const weightUnit=/\b(t|ton|tons|tonelada|toneladas)\b/i.test(normalized)?"t":"kg";
  const missing=[!Number.isFinite(record.L?.value)&&"largo",!Number.isFinite(record.W?.value)&&"ancho",!Number.isFinite(record.H?.value)&&"alto",!Number.isFinite(record.wt?.value)&&"peso"].filter(Boolean);
@@ -332,7 +347,8 @@ async function importarPDF(file){
  renderPieces();
  if(!importadas&&partial){prepareIncompleteImport(partial)}
  const missing=partial?.missing||["largo","ancho","alto","peso"];
- alert(importadas?`PDF procesado: ${importadas} referencia(s) agregada(s)${partial?.warnings?.length?`. Advertencias: ${partial.warnings.join(", ")}.`:""}`:`PDF leído parcialmente. Falta: ${missing.join(", ")}. Completa los datos en el formulario.`);
+ const noReadableText=!text.trim()&&!lines.length;
+ alert(importadas?`PDF procesado: ${importadas} referencia(s) agregada(s)${partial?.warnings?.length?`. Advertencias: ${partial.warnings.join(", ")}.`:""}`:noReadableText?"El PDF es escaneado o no contiene texto reconocible. Ingresa los datos manualmente o conviértelo a un PDF con texto seleccionable.":`PDF leído parcialmente. Falta: ${missing.join(", ")}. Completa los datos en el formulario.`);
 }
 function importarArchivo(evt){
  const file=evt.target.files[0]; if(!file)return;
@@ -358,7 +374,7 @@ function importarExcel(evt){
     rows.forEach(row=>{
       const keys={}; Object.keys(row).forEach(k=>keys[normHeader(k)]=row[k]);
       const get=(...names)=>importValue(keys,names);
-      const desc=get("descripcion","referencia","item","producto")||`Referencia ${pieces.length+importadas+1}`;
+      const desc=get("descripcion","referencia","item","producto","description")||`Ítem ${pieces.length+importadas+1}`;
       const cantValue=parseNumber(get("cantidad","cant","und","unidades","units","quantity","qty"));
       const cant=Number.isFinite(cantValue)?cantValue:1;
       let L=parseNumber(get("largo","long","longitud","length","l"));
@@ -483,18 +499,22 @@ function exportarExcel(){
  const workbook=XLSX.utils.book_new();XLSX.utils.book_append_sheet(workbook,sheet,"Carga");
  XLSX.writeFile(workbook,"logitrading-carga.xlsx");
 }
-function generarCotizacion(){
+function generarCotizacion(guardar=false){
+  console.log("🔵 generarCotizacion() llamada con guardar="+guardar);
   // Siempre recalculamos para que la cotización use los últimos datos ingresados.
   if(!hasCargo()){
+    console.log("❌ No hay carga registrada");
     $("quote").innerHTML='<div class="empty">⚠ Completa los datos básicos de la carga antes de generar la cotización.</div>';
     return;
   }
   const a=analyzeSet();
   lastAnalysis=a;
   if(!a.best){
+    console.log("❌ No se encontró vehículo compatible");
     $("quote").innerHTML='<div class="alert red">⚠ No se encontró un vehículo compatible. Revisa peso, volumen, dimensiones y condiciones especiales.</div>';
     return;
   }
+  console.log("✅ Vehículo encontrado:", a.best.v.name);
   const op=$("operacion").value, mod=$("modalidad").value, serv=$("servicio").value;
   const val=validation(a);
   const fecha=$("fecha").value ? new Date($("fecha").value).toLocaleString("es-CO") : "Pendiente";
@@ -504,7 +524,7 @@ function generarCotizacion(){
   const totalCotizado = venta || (costo+sello+devol+otros+Math.max(0,utilidad));
   const margenPct = venta ? (utilidad/venta*100) : 0;
 
-  $("quote").innerHTML=`<div class="quote-head"><div><b>Solicitud de transporte</b><div style="color:#8d99ab;font-size:11px;margin-top:4px">${esc(op)} · ${esc(mod)} · ${esc(serv)}</div></div><span class="badge ${val.level}">${val.level.toUpperCase()}</span></div>
+  $("quote").innerHTML=`<div class="quote-head executive-head"><div class="quote-brand"><img src="assets/logitrading-logo.png" alt="Logitrading" class="quote-logo"><div><div class="eyebrow">RESUMEN EJECUTIVO</div><h2>Cotización de transporte</h2><div class="quote-meta">${esc(op)} · ${esc(mod)} · ${esc(serv)} · ${esc(fecha)}</div></div></div><span class="badge ${val.level}">${val.level.toUpperCase()}</span></div>
   <div class="final-recommendation">
     <div class="final-rec-title"><span>VEHÍCULO RECOMENDADO</span><b>${val.level==="green"?"✓ MEJOR AJUSTE":val.level==="yellow"?"⚠ REVISAR ANTES DE COTIZAR":"✕ REVISIÓN NECESARIA"}</b></div>
     <div class="final-rec-body">
@@ -521,9 +541,9 @@ function generarCotizacion(){
       </div>
     </div>
   </div>
-  <table><tr><th>Ruta</th><td>${esc($("origen").value||"Pendiente")} → ${esc($("destino").value||"Pendiente")}</td></tr><tr><th>Recogida</th><td>${esc($("recogida").value||"Pendiente")}</td></tr><tr><th>Destino</th><td>${esc($("destino").value||"Pendiente")}</td></tr><tr><th>Fecha requerida</th><td>${esc(fecha)}</td></tr><tr><th>Tipo de carga</th><td>${esc($("tipoCarga").value||"Pendiente")}</td></tr><tr><th>Carga</th><td>${a.t.weight.toFixed(3)} t · ${a.t.volume.toFixed(2)} m³ · ${a.t.area.toFixed(2)} m² · ${pieces.length} referencias</td></tr><tr><th>Dimensión máxima</th><td>${a.t.maxL.toFixed(2)} × ${a.t.maxW.toFixed(2)} × ${a.t.maxH.toFixed(2)} m</td></tr><tr><th>Requerimientos</th><td>${requirements()}</td></tr></table>
+  <div class="quote-section"><div class="quote-section-title">Detalles del servicio</div><table class="service-details"><tr><th>Ruta</th><td>${esc($("origen").value||"Pendiente")} → ${esc($("destino").value||"Pendiente")}</td></tr><tr><th>Recogida</th><td>${esc($("recogida").value||"Pendiente")}</td></tr><tr><th>Destino</th><td>${esc($("destino").value||"Pendiente")}</td></tr><tr><th>Fecha requerida</th><td>${esc(fecha)}</td></tr><tr><th>Tipo de carga</th><td>${esc($("tipoCarga").value||"Pendiente")}</td></tr><tr><th>Carga</th><td>${a.t.weight.toFixed(3)} t · ${a.t.volume.toFixed(2)} m³ · ${a.t.area.toFixed(2)} m² · ${pieces.length} referencias</td></tr><tr><th>Dimensión máxima</th><td>${a.t.maxL.toFixed(2)} × ${a.t.maxW.toFixed(2)} × ${a.t.maxH.toFixed(2)} m</td></tr><tr><th>Requerimientos</th><td>${requirements()}</td></tr></table></div>
 
-  <div class="final-recommendation" style="margin-top:18px">
+  <div class="final-recommendation quote-values" style="margin-top:18px">
     <div class="final-rec-title"><span>VALORES DE LA COTIZACIÓN</span><b>${esc($("vObs").value||"")}</b></div>
     <table style="margin-top:0">
       <tr><th>Valor de venta (flete cliente)</th><td>${money(venta)}</td></tr>
@@ -532,12 +552,15 @@ function generarCotizacion(){
       <tr><th>Devolución de vacío</th><td>${money(devol)}</td></tr>
       <tr><th>Otros cargos</th><td>${money(otros)}</td></tr>
       <tr><th>Utilidad neta</th><td>${money(utilidad)} ${venta?`(${margenPct.toFixed(1)}% sobre venta)`:""}</td></tr>
-      <tr><th><b>Total cotizado al cliente</b></th><td><b>${money(totalCotizado)}</b></td></tr>
+      <tr class="quote-total"><th><b>TOTAL COTIZADO AL CLIENTE</b></th><td><b>${money(totalCotizado)}</b></td></tr>
     </table>
   </div>
 
-  <div style="margin-top:13px;color:#8f9bad;font-size:11px">Nota comercial: recomendación preliminar. Confirmar vehículo real, disponibilidad, ruta, restricciones, distribución física, permisos y tarifa antes de emitir la oferta definitiva.</div>
-  <div class="no-print" style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px"><button class="btn primary" onclick="imprimirCotizacion()">🖨 Imprimir / guardar PDF</button></div>`;
+  <div style="margin-top:13px;color:#8f9bad;font-size:11px">Nota comercial: recomendación preliminar. Confirmar vehículo real, disponibilidad, ruta, restricciones, distribución física, permisos y tarifa antes de emitir la oferta definitiva.</div>`;
+  if(guardar){
+    console.log("💾 Guardando cotización...");
+    guardarCotizacion(a,totalCotizado);
+  }
 }
 function imprimirCotizacion(){
   showPanel(7);
@@ -642,5 +665,77 @@ function verFicha(i){
 function cerrarFicha(){$("vehicleModalOverlay").classList.remove("open");}
 function restaurarVehiculos(){if(confirm("¿Restaurar la tabla maestra a los valores base?")){vehicles=BASE_VEHICLES.map(v=>({...v}));renderVehicles();}}
 function reiniciarTodo(){if(!confirm("Esto borrará la solicitud, las piezas y el análisis. ¿Continuar?"))return;pieces=[];lastAnalysis=null;document.querySelectorAll("input").forEach(i=>{if(i.type!=="checkbox")i.value=""});document.querySelectorAll("select").forEach(s=>s.selectedIndex=0);$("pCant").value=1;$("contCant").value=1;renderPieces();$("alerts").innerHTML='<div class="alert blue">Solicitud reiniciada. Puedes empezar una nueva.</div>';$("recommendation").innerHTML="";$("quote").innerHTML='<div class="empty">Aún no hay cotización.</div>';toggleContainer();window.scrollTo({top:0,behavior:"smooth"})}
-renderVehicles();renderPieces();calcPiecePreview();
+function guardarCotizacion(a,totalCotizado){
+  if(!lastAnalysis){alert("No hay análisis para guardar.");return}
+  const id=Math.random().toString(36).slice(2,8).toUpperCase();
+  const record={
+    id,
+    fecha:new Date().toLocaleString("es-CO"),
+    operacionId:$("operationId").value||"—",
+    cliente:$("clientName").value||"—",
+    tipoCarga:$("tipoCarga").value||"—",
+    peso:a.t.weight.toFixed(3),
+    volumen:a.t.volume.toFixed(2),
+    vehiculo:a.best.v.name+(a.best.multi?` × ${a.best.count}`:""),
+    total:money(totalCotizado)
+  };
+  let history=JSON.parse(localStorage.getItem("lt_history")||"[]");
+  history.unshift(record);
+  if(history.length>500)history=history.slice(0,500);
+  localStorage.setItem("lt_history",JSON.stringify(history));
+  alert(`Cotización guardada: ${id}`);
+  renderHistory();
+}
+function renderHistory(){
+  const tbody=$("historyTableBody");
+  const search=($("historySearch")?.value||"").toLowerCase();
+  if(!tbody)return;
+  let history=JSON.parse(localStorage.getItem("lt_history")||"[]");
+  if(search){
+    history=history.filter(r=>(r.operacionId.toLowerCase().includes(search)||r.cliente.toLowerCase().includes(search)));
+  }
+  const count=$("historyCount");
+  if(count)count.textContent=`${history.length} ${history.length===1?"registro":"registros"}`;
+  if(!history.length){
+    tbody.innerHTML='<tr><td colspan="9" style="text-align:center;padding:20px;color:#8f9bad">No hay registros en el historial.</td></tr>';
+    return;
+  }
+  tbody.innerHTML=history.map(r=>`<tr>
+    <td>${esc(r.fecha)}</td>
+    <td><strong>${esc(r.operacionId)}</strong></td>
+    <td>${esc(r.cliente)}</td>
+    <td>${esc(r.tipoCarga)}</td>
+    <td>${r.peso} t</td>
+    <td>${r.volumen} m³</td>
+    <td>${esc(r.vehiculo)}</td>
+    <td><strong>${r.total}</strong></td>
+    <td><button class="iconbtn" onclick="if(confirm('¿Eliminar este registro?')){let h=JSON.parse(localStorage.getItem('lt_history')||'[]');h=h.filter(x=>x.id!=='${r.id}');localStorage.setItem('lt_history',JSON.stringify(h));renderHistory();}" title="Eliminar">×</button></td>
+  </tr>`).join("");
+}
+function exportarHistorial(){
+  if(typeof XLSX==="undefined"){alert("No está disponible el exportador Excel.");return}
+  let history=JSON.parse(localStorage.getItem("lt_history")||"[]");
+  if(!history.length){alert("El historial está vacío.");return}
+  const rows=history.map(r=>({
+    "Fecha":r.fecha,
+    "ID Operación":r.operacionId,
+    "Cliente":r.cliente,
+    "Tipo Carga":r.tipoCarga,
+    "Peso (t)":r.peso,
+    "Volumen (m³)":r.volumen,
+    "Vehículo":r.vehiculo,
+    "Total":r.total
+  }));
+  const sheet=XLSX.utils.json_to_sheet(rows);
+  const workbook=XLSX.utils.book_new();XLSX.utils.book_append_sheet(workbook,sheet,"Historial");
+  XLSX.writeFile(workbook,"logitrading-historial.xlsx");
+}
+function vaciarHistorial(){
+  if(confirm("¿Borrar todo el historial de cotizaciones? Esta acción no se puede deshacer.")){
+    localStorage.removeItem("lt_history");
+    renderHistory();
+    alert("Historial borrado.");
+  }
+}
+renderVehicles();renderPieces();calcPiecePreview();renderHistory();
 document.addEventListener("input",updateDashboard);document.addEventListener("change",updateDashboard);

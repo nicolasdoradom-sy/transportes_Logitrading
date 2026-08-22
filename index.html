@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<link rel="icon" type="image/png" href="assets/logitrading-logo.png?v=2">
+<link rel="icon" type="image/png" href="assets/logitrading-favicon.png?v=3">
 <link rel="stylesheet" href="css/styles.css?v=2">
 </head>
 <body>
@@ -18,7 +18,7 @@
 -->
 <header class="topbar">
   <div class="brand"><img src="assets/logitrading-logo.png" alt="Logitrading" class="brand-logo"><div class="brand-name"><small>ENCUESTADOR DE SELECCIÓN DE VEHÍCULO</small></div></div>
-  <div class="header-actions"><button class="btn ghost" onclick="showPanel(6)">⚙ Tabla maestra</button><button class="btn primary" onclick="showPanel(7);generarCotizacion()">Cotización final</button></div>
+  <div class="header-actions"><button class="btn ghost" onclick="showPanel(6)">⚙ Tabla maestra</button><button class="btn ghost" onclick="showPanel(8);renderHistory()">Historial</button><button class="btn primary" onclick="showPanel(7);generarCotizacion()">Cotización final</button></div>
 </header>
 
 <main class="container">
@@ -35,6 +35,8 @@
         <div class="field"><label>Modalidad</label><select id="modalidad"><option>OTM</option><option>Carga nacionalizada</option><option>Continuación de viaje</option><option>Tránsito aduanero</option></select></div>
         <div class="field"><label>Tipo de servicio</label><select id="servicio"><option>Urbano</option><option>Nacional</option><option>Expreso</option><option>Consolidado</option></select></div>
         <div class="field"><label>Tipo de carga</label><select id="tipoCarga" onchange="toggleContainer()"><option value="" selected disabled>Seleccione tipo de carga</option><option>Carga suelta</option><option>Contenedor</option><option>Proyecto</option><option>Refrigerada</option></select></div>
+        <div class="field"><label>ID de operación</label><input id="operationId" placeholder="Ej. OP-2026-001"></div>
+        <div class="field"><label>Cliente</label><input id="clientName" placeholder="Nombre de empresa o persona"></div>
         <div class="field"><label>Origen</label><input id="origen" placeholder="Ciudad / puerto / aeropuerto / zona franca"></div>
         <div class="field"><label>Destino</label><input id="destino" placeholder="Ciudad y dirección"></div>
         <div class="field fullw"><label>Dirección de recogida</label><input id="recogida" placeholder="Dirección exacta, muelle o punto de cargue"></div>
@@ -156,9 +158,14 @@
     </section>
 
     <section class="card full panel" id="panel7">
-      <div class="section-title"><div><h2>6. Cotización final</h2><div class="sub">Resumen ejecutivo listo para revisar y enviar al transportador.</div></div></div>
       <div id="quote" class="quote"><div class="empty">Aún no hay cotización. Registra la carga y analiza la mejor opción.</div></div>
-    <div class="panel-next quote-actions"><button class="btn ghost" onclick="showPanel(5)">← Analizador</button><button class="btn primary" id="quoteGenerateBtn" onclick="generarCotizacion()" disabled>Generar cotización</button><button class="btn" onclick="exportarExcel()">Exportar Excel</button><button class="btn" onclick="imprimirCotizacion()">Imprimir / guardar PDF</button><button class="btn danger" onclick="reiniciarTodo()">Reiniciar todo</button></div></section>
+    <div class="panel-next quote-actions"><button class="btn ghost" onclick="showPanel(5)">← Analizador</button><button class="btn primary" id="quoteGenerateBtn" onclick="generarCotizacion(true)" disabled>Generar cotización</button><button class="btn" onclick="exportarExcel()">Exportar Excel</button><button class="btn" onclick="imprimirCotizacion()">Imprimir / guardar PDF</button><button class="btn danger" onclick="reiniciarTodo()">Reiniciar todo</button></div></section>
+
+    <section class="card full panel" id="panel8">
+      <div class="section-title"><div><div class="eyebrow">Registro local</div><h2>Historial de cotizaciones</h2><div class="sub">Consulta las cotizaciones generadas en este navegador.</div></div><div class="history-actions"><button class="btn" onclick="exportarHistorial()">Exportar historial</button><button class="btn danger" onclick="vaciarHistorial()">Vaciar historial</button></div></div>
+      <div class="history-toolbar"><input id="historySearch" type="search" placeholder="Buscar por ID de operación o cliente" oninput="renderHistory()"><span id="historyCount" class="footer-note">0 registros</span></div>
+      <div class="history-table-wrap"><table class="quote history-table"><thead><tr><th>Fecha</th><th>ID Operación</th><th>Cliente</th><th>Tipo de carga</th><th>Peso</th><th>Volumen</th><th>Vehículo</th><th>Total</th><th></th></tr></thead><tbody id="historyTableBody"></tbody></table></div>
+    </section>
   </div>
   <div class="footer-note">Recomendación preliminar: la selección final debe validarse con el transportador según vehículo real, ruta, normatividad, carrocería, estiba/distribución y permisos aplicables.</div>
 </main>
