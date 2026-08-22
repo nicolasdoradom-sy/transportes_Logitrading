@@ -69,7 +69,7 @@ function scrollToId(id){$(id).scrollIntoView({behavior:"smooth"})}
 function toggleContainer(){
   const tipo = $("tipoCarga").value;
   const serviceContinue = $("servicioContinue");
-  if(serviceContinue) serviceContinue.style.display = "flex";
+  if(serviceContinue) serviceContinue.style.display = tipo === "Carga suelta" ? "flex" : "none";
   const panelContenedor = $("panel2");
   const panelCarga = $("panel3");
 
@@ -88,6 +88,14 @@ function toggleContainer(){
   }else if(tipo === "Carga suelta"){
     panelCarga.classList.add("inline-carga-suelta","service-side-active");
   }
+  updateLooseCargoContinue();
+}
+function updateLooseCargoContinue(){
+  const button=$("looseCargoContinue");
+  if(!button)return;
+  const enabled=$("tipoCarga")?.value==="Carga suelta" && pieces.length>0;
+  button.disabled=!enabled;
+  button.setAttribute("aria-disabled",String(!enabled));
 }
 function continuarServicio(){
   const tipo = $("tipoCarga").value;
@@ -99,7 +107,7 @@ function continuarServicio(){
   }
 
   if(tipo === "Carga suelta" && (!pieces || pieces.length === 0)){
-    alert("Agrega al menos una pieza antes de continuar.");
+    alert("Agrega al menos una carga válida antes de continuar.");
     const p = $("panel3");
     if(p) p.scrollIntoView({behavior:"smooth",block:"start"});
     return;
@@ -180,6 +188,7 @@ function renderPieces(){
  </div></div>`).join("");
  const t=totals();$("totalTon").textContent=t.weight.toFixed(3)+" t";$("totalM3").textContent=t.volume.toFixed(2)+" m³";$("totalArea").textContent=t.area.toFixed(2)+" m²";$("totalRefs").textContent=pieces.length;
  renderMeasuresTable();
+ updateLooseCargoContinue();
 }
 function renderMeasuresTable(){
  const tbl=$("measuresTable"); if(!tbl)return;

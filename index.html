@@ -3,11 +3,12 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" type="image/png" href="assets/logitrading-logo.png">
 <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
 <header class="topbar">
-  <div class="brand"><div class="brand-mark">LT</div><div>LOGITRADING<small>ENCUESTADOR DE SELECCIÓN DE VEHÍCULO</small></div></div>
+  <div class="brand"><img src="assets/logitrading-logo.png" alt="Logitrading" class="brand-logo"><div class="brand-name"><small>ENCUESTADOR DE SELECCIÓN DE VEHÍCULO</small></div></div>
   <div class="header-actions"><button class="btn ghost" onclick="showPanel(6)">⚙ Tabla maestra</button><button class="btn primary" onclick="showPanel(7);generarCotizacion()">Cotización final</button></div>
 </header>
 
@@ -15,7 +16,7 @@
   <div class="hero">
     <div><div class="eyebrow">Panel de decisión logística</div><h1>Selección inteligente de transporte</h1><p>Registra la operación y una o varias referencias de carga. El sistema convierte unidades, calcula peso, volumen y área de piso, valida dimensiones y condiciones especiales, y recomienda la combinación de vehículos más pequeña que cumpla los requisitos.</p></div>
   </div>
-  <div class="app-nav app-nav-six" id="appNav"><button class="app-tab active" data-panel="1" onclick="showPanel(1)"><span class="num">1</span> Servicio</button><button class="app-tab tabhidden" data-panel="3" onclick="showPanel(3)"><span class="num">3</span> Carga</button><button class="app-tab" data-panel="4" onclick="showPanel(4)"><span class="num">4</span> Especiales</button><button class="app-tab" data-panel="5" onclick="showPanel(5)"><span class="num">5</span> Analizador</button><button class="app-tab" data-panel="7" onclick="showPanel(7);generarCotizacion()"><span class="num">6</span> Cotización final</button></div><div class="dashboard"><div class="dash-card"><span>Peso total</span><strong id="dashTon">0.00 t</strong></div><div class="dash-card"><span>Cubicaje</span><strong id="dashM3">0.00 m³</strong></div><div class="dash-card"><span>Referencias</span><strong id="dashRefs">0</strong></div><div class="dash-card"><span>Estado</span><strong><i id="dashDot" class="status-dot"></i><span id="dashStatus">Pendiente</span></strong></div></div>
+  <div class="app-nav app-nav-six" id="appNav" aria-label="Progreso de la solicitud"><button class="app-tab active" data-panel="1" onclick="showPanel(1)"><span class="num">1</span> Servicio</button><button class="app-tab tabhidden" data-panel="3" onclick="showPanel(3)"><span class="num">2</span> Carga</button><button class="app-tab" data-panel="4" onclick="showPanel(4)"><span class="num">3</span> Especiales</button><button class="app-tab" data-panel="5" onclick="showPanel(5)"><span class="num">4</span> Analizador</button><button class="app-tab" data-panel="7" onclick="showPanel(7);generarCotizacion()"><span class="num">5</span> Cotización final</button></div><div class="dashboard"><div class="dash-card"><span>Peso total</span><strong id="dashTon">0.00 t</strong></div><div class="dash-card"><span>Cubicaje</span><strong id="dashM3">0.00 m³</strong></div><div class="dash-card"><span>Referencias</span><strong id="dashRefs">0</strong></div><div class="dash-card"><span>Estado</span><strong><i id="dashDot" class="status-dot"></i><span id="dashStatus">Pendiente</span></strong></div></div>
 
   <div class="grid">
     <section class="card panel active" id="panel1">
@@ -53,7 +54,7 @@
 
     <div id="panel3Placeholder"></div>
     <section class="card full panel" id="panel3">
-      <div class="section-title"><div><h2>3. Piezas y cubicaje</h2><div class="sub">Agrega cada referencia o grupo de piezas. El sistema reinicia el formulario de pieza al guardar y permite editar cualquier registro.</div></div><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" onclick="document.getElementById('excelInput').click()">📎 Importar Excel/CSV</button><input type="file" id="excelInput" accept=".xlsx,.xls,.csv" style="display:none" onchange="importarArchivo(event)"><button class="btn" onclick="document.getElementById('pdfInput').click()">▣ Leer PDF</button><input type="file" id="pdfInput" accept=".pdf" style="display:none" onchange="importarArchivo(event)"><button class="btn primary" onclick="agregarPieza()">+ Agregar otra pieza o grupo</button></div></div>
+      <div class="section-title"><div><div class="eyebrow">Carga suelta</div><h2>Información de la carga</h2><div class="sub">Agrega cada referencia o grupo de piezas. Puedes editar cualquier registro antes de continuar.</div></div><div class="section-actions"><button class="btn" onclick="document.getElementById('excelInput').click()">Importar Excel/CSV</button><input type="file" id="excelInput" accept=".xlsx,.xls,.csv" style="display:none" onchange="importarArchivo(event)"><button class="btn" onclick="document.getElementById('pdfInput').click()">Leer PDF</button><input type="file" id="pdfInput" accept=".pdf" style="display:none" onchange="importarArchivo(event)"><button class="btn primary" onclick="agregarPieza()">+ Agregar carga</button></div></div>
       <div class="footer-note" id="excelHelp" style="margin-bottom:14px">Busca automáticamente los datos básicos: <b>Largo/Longitud/Length, Ancho/Width, Alto/Altura/Height, Peso/Weight y Cantidad/Unidades/Quantity</b>. Descripción, unidades y campos especiales son opcionales. Las filas incompletas se informan y sus datos encontrados quedan disponibles para completar.</div>
       <div class="piece" id="pieceForm">
         <div class="fields">
@@ -85,7 +86,7 @@
     </section>
 
     <div id="servicioContinue" class="service-continue">
-      <button class="btn primary service-continue-btn" type="button" onclick="continuarServicio()">Continuar →</button>
+      <button class="btn primary service-continue-btn" id="looseCargoContinue" type="button" onclick="continuarServicio()" disabled>Continuar <span aria-hidden="true">→</span></button>
     </div>
 
     <section class="card panel" id="panel4">
@@ -113,7 +114,7 @@
       <div class="section-title"><div><h2>5. Analizador</h2><div class="sub">Margen operativo configurable: 10 % por defecto.</div></div><button class="btn primary" onclick="analizar()">Analizar mejor opción</button></div>
       <div style="display:grid;grid-template-columns:1.15fr .85fr;gap:16px" class="analyzer-grid">
         <div>
-          <div id="alerts" class="alerts"><div class="alert blue">Completa al menos una referencia y pulsa <b>Analizar mejor opción</b>.</div></div>
+          <div id="alerts" class="alerts" role="status" aria-live="polite"><div class="alert blue">Completa al menos una referencia y pulsa <b>Analizar mejor opción</b>.</div></div>
           <div id="recommendation" style="margin-top:12px"></div>
         </div>
         <div>
