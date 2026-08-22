@@ -35,7 +35,8 @@ function showPanel(n){
   updateDashboard();
   window.scrollTo({top:0,behavior:'smooth'});
 }
-function updateDashboard(){const t=typeof totals==='function'?totals():{weight:0,volume:0,refs:0};const a=typeof lastAnalysis!=='undefined'?lastAnalysis:null;const q=id=>document.getElementById(id);if(q('dashTon'))q('dashTon').textContent=(t.weight||0).toFixed(2)+' t';if(q('dashM3'))q('dashM3').textContent=(t.volume||0).toFixed(2)+' m³';if(q('dashRefs'))q('dashRefs').textContent=t.refs||0;if(a&&typeof validation==='function'){const v=validation(a);q('dashStatus').textContent=v.level==='green'?'Aprobado':v.level==='yellow'?'Revisar':'No compatible';q('dashDot').className='status-dot '+v.level;}else{q('dashStatus').textContent='Pendiente';q('dashDot').className='status-dot';}}
+function updateDashboard(){const t=typeof totals==='function'?totals():{weight:0,volume:0,refs:0};const a=typeof lastAnalysis!=='undefined'?lastAnalysis:null;const q=id=>document.getElementById(id);if(q('dashTon'))q('dashTon').textContent=(t.weight||0).toFixed(2)+' t';if(q('dashM3'))q('dashM3').textContent=(t.volume||0).toFixed(2)+' m³';if(q('dashRefs'))q('dashRefs').textContent=t.refs||0;updateQuoteButton();if(a&&typeof validation==='function'){const v=validation(a);q('dashStatus').textContent=v.level==='green'?'Aprobado':v.level==='yellow'?'Revisar':'No compatible';q('dashDot').className='status-dot '+v.level;}else{q('dashStatus').textContent='Pendiente';q('dashDot').className='status-dot';}}
+function updateQuoteButton(){const button=$("quoteGenerateBtn");if(!button)return;const enabled=typeof hasCargo==='function'&&hasCargo();button.disabled=!enabled;button.setAttribute("aria-disabled",String(!enabled));}
 
 const BASE_VEHICLES = [
  {name:"4 x 4",cap:1,vol:5.5,L:2.0,W:1.4,H:1.5,body:"Furgón - carpado platón",cargo:"Carga suelta / bultos / pallets",special:""},
@@ -189,6 +190,7 @@ function renderPieces(){
  const t=totals();$("totalTon").textContent=t.weight.toFixed(3)+" t";$("totalM3").textContent=t.volume.toFixed(2)+" m³";$("totalArea").textContent=t.area.toFixed(2)+" m²";$("totalRefs").textContent=pieces.length;
  renderMeasuresTable();
  updateLooseCargoContinue();
+ updateQuoteButton();
 }
 function renderMeasuresTable(){
  const tbl=$("measuresTable"); if(!tbl)return;
@@ -240,6 +242,10 @@ function findPdfNumber(text,names){
  const measurement=findPdfMeasurement(text,names);
  return measurement?measurement.value:NaN;
 }
+function findPdfDimensions(text){
+ const match=/([0-9][0-9.,]*)\s*[x×*]\s*([0-9][0-9.,]*)\s*[x×*]\s*([0-9][0-9.,]*)\s*(mm|cm|m)?/i.exec(text);
+ return match?{L:parseNumber(match[1]),W:parseNumber(match[2]),H:parseNumber(match[3]),unit:(match[4]||"").toLowerCase()}:null;
+}
 function convertPdfMeasurement(measurement,defaultUnit){
  if(!measurement||!Number.isFinite(measurement.value))return NaN;
  const unit=measurement.unit||defaultUnit;
@@ -259,18 +265,22 @@ function pdfLines(items){
 }
 function pdfRecord(text,index){
  const normalized=normalizePdfText(text);
+ const dimensions=findPdfDimensions(normalized);
  const record={
   desc:`Referencia PDF ${index}`,
   q:findPdfMeasurement(normalized,["cantidad","cant","unidades","units","quantity","qty"]),
-  L:findPdfMeasurement(normalized,["largo","longitud","length"]),
-  W:findPdfMeasurement(normalized,["ancho","width"]),
+  L:findPdfMeasurement(normalized,["largo","longitud","length","long"]),
+  W:findPdfMeasurement(normalized,["ancho","width","wide"]),
   H:findPdfMeasurement(normalized,["alto","altura","height"]),
   wt:findPdfMeasurement(normalized,["peso","weight","gross weight","gross"])
  };
+ if(dimensions){record.L=record.L||{value:dimensions.L,unit:dimensions.unit};record.W=record.W||{value:dimensions.W,unit:dimensions.unit};record.H=record.H||{value:dimensions.H,unit:dimensions.unit}}
+ if(!record.wt){const weightMatch=/([0-9][0-9.,]*)\s*(kg|lb|lbs|t|ton(?:eladas?)?)(?:\b|$)/i.exec(normalized);if(weightMatch)record.wt={value:parseNumber(weightMatch[1]),unit:weightMatch[2].toLowerCase()}}
  const dimensionsUnit=/\b(m|metro|metros)\b/i.test(normalized)?"m":"cm";
  const weightUnit=/\b(t|ton|tons|tonelada|toneladas)\b/i.test(normalized)?"t":"kg";
- const missing=[!Number.isFinite(record.L?.value)&&"largo",!Number.isFinite(record.W?.value)&&"ancho",!Number.isFinite(record.H?.value)&&"alto",!Number.isFinite(record.wt?.value)&&"peso",!Number.isFinite(record.q?.value)&&"cantidad"].filter(Boolean);
- return {record:{...record,L:convertPdfMeasurement(record.L,dimensionsUnit),W:convertPdfMeasurement(record.W,dimensionsUnit),H:convertPdfMeasurement(record.H,dimensionsUnit),wt:convertPdfMeasurement(record.wt,weightUnit),q:record.q?.value},missing};
+ const missing=[!Number.isFinite(record.L?.value)&&"largo",!Number.isFinite(record.W?.value)&&"ancho",!Number.isFinite(record.H?.value)&&"alto",!Number.isFinite(record.wt?.value)&&"peso"].filter(Boolean);
+ const quantityAssumed=!Number.isFinite(record.q?.value);if(quantityAssumed)record.q={value:1,unit:""};
+ return {record:{...record,L:convertPdfMeasurement(record.L,dimensions?.unit||dimensionsUnit),W:convertPdfMeasurement(record.W,dimensions?.unit||dimensionsUnit),H:convertPdfMeasurement(record.H,dimensions?.unit||dimensionsUnit),wt:convertPdfMeasurement(record.wt,weightUnit),q:record.q.value},missing,warnings:quantityAssumed?["cantidad asumida: 1"]:[]};
 }
 function prepareIncompleteImport(result){
  const record=result.record;
@@ -321,8 +331,8 @@ async function importarPDF(file){
  records.forEach(record=>{pieces.push({...record,apilable:false,acostarse:false,sobresalir:false,fragil:false,peligrosa:false});importadas++});
  renderPieces();
  if(!importadas&&partial){prepareIncompleteImport(partial)}
- const missing=partial?.missing||["largo","ancho","alto","peso","cantidad"];
- alert(importadas?`PDF procesado correctamente: ${importadas} referencia(s) agregada(s).`:`PDF leído parcialmente. Falta: ${missing.join(", ")}. Completa esos datos en el formulario.`);
+ const missing=partial?.missing||["largo","ancho","alto","peso"];
+ alert(importadas?`PDF procesado: ${importadas} referencia(s) agregada(s)${partial?.warnings?.length?`. Advertencias: ${partial.warnings.join(", ")}.`:""}`:`PDF leído parcialmente. Falta: ${missing.join(", ")}. Completa los datos en el formulario.`);
 }
 function importarArchivo(evt){
  const file=evt.target.files[0]; if(!file)return;
@@ -337,21 +347,27 @@ function importarExcel(evt){
     const data=new Uint8Array(e.target.result);
     const wb=XLSX.read(data,{type:"array"});
     const sheet=wb.Sheets[wb.SheetNames[0]];
-    const rows=XLSX.utils.sheet_to_json(sheet,{defval:""});
+    const matrix=XLSX.utils.sheet_to_json(sheet,{header:1,defval:""});
+    const aliases=["largo","long","length","longitud","ancho","width","wide","alto","height","altura","peso","weight","kg","cantidad","qty","quantity","unidades","cant"];
+    const headerIndex=matrix.slice(0,5).reduce((best,row,index)=>{const score=row.filter(cell=>aliases.some(alias=>normHeader(cell).includes(normHeader(alias)))).length;return score>best.score?{index,score}:best},{index:0,score:0}).index;
+    const headers=matrix[headerIndex]||[];
+    const headerText=headers.map(String).join(" ");
+    const rows=matrix.slice(headerIndex+1).filter(row=>row.some(value=>String(value).trim()!=="")).map(row=>Object.fromEntries(headers.map((header,index)=>[header,row[index]??""])));
     if(!rows.length){alert("El archivo no tiene filas de datos.");return}
     let importadas=0, omitidas=0, faltantes={largo:0,ancho:0,alto:0,peso:0,cantidad:0};
     rows.forEach(row=>{
       const keys={}; Object.keys(row).forEach(k=>keys[normHeader(k)]=row[k]);
       const get=(...names)=>importValue(keys,names);
       const desc=get("descripcion","referencia","item","producto")||`Referencia ${pieces.length+importadas+1}`;
-      const cant=parseNumber(get("cantidad","cant","und","unidades","units","quantity","qty"));
-      let L=parseNumber(get("largo","longitud","length","l"));
-      let W=parseNumber(get("ancho","width","a"));
+      const cantValue=parseNumber(get("cantidad","cant","und","unidades","units","quantity","qty"));
+      const cant=Number.isFinite(cantValue)?cantValue:1;
+      let L=parseNumber(get("largo","long","longitud","length","l"));
+      let W=parseNumber(get("ancho","width","wide","a"));
       let H=parseNumber(get("alto","altura","height","h"));
-      let peso=parseNumber(get("peso","weight","peso unitario","peso u"));
-      const unidad=String(get("unidad","unidad medida","unidad de medida","dimension unit")||"cm").toLowerCase();
-      const unidadPeso=String(get("unidad peso","unidad de peso","und peso","weight unit")||"kg").toLowerCase();
-      const missing=[!L&&"largo",!W&&"ancho",!H&&"alto",!peso&&"peso",!cant&&"cantidad"].filter(Boolean);
+      let peso=parseNumber(get("peso","weight","kg","peso unitario","peso por unidad","peso u"));
+      const unidad=String(get("unidad","unidad medida","unidad de medida","dimension unit")||(/\bmm\b/i.test(headerText)?"mm":/\bmetros?\b|\(m\)/i.test(headerText)?"m":"cm")).toLowerCase();
+      const unidadPeso=String(get("unidad peso","unidad de peso","und peso","weight unit")||(/\blb?s\b/i.test(headerText)?"lb":/\bton(?:eladas?)?\b/i.test(headerText)?"t":"kg")).toLowerCase();
+      const missing=[!L&&"largo",!W&&"ancho",!H&&"alto",!peso&&"peso"].filter(Boolean);
       if(missing.length){missing.forEach(field=>faltantes[field]++);omitidas++;return}
       if(unidad.startsWith("mm")){L/=1000;W/=1000;H/=1000}else if(!unidad.startsWith("m")){L/=100;W/=100;H/=100}
       if(unidadPeso.startsWith("lb")){peso*=0.00045359237}else if(!unidadPeso.startsWith("t")){peso/=1000}
@@ -360,7 +376,8 @@ function importarExcel(evt){
     });
     renderPieces();
     const missingSummary=Object.entries(faltantes).filter(([,count])=>count).map(([field,count])=>`${field}: ${count}`).join(", ");
-    alert(`Importación completa: ${importadas} referencia(s) agregada(s)${omitidas?`, ${omitidas} fila(s) omitida(s) por datos incompletos${missingSummary?` (${missingSummary})`:""}`:""}.`);
+    const warning=matrix[headerIndex].some(cell=>/cm|mm|kg/i.test(String(cell)))?"":" Unidades asumidas: cm y kg.";
+    alert(`Importación completa: ${importadas} referencia(s) agregada(s).${warning}${omitidas?` ${omitidas} fila(s) omitida(s) por datos incompletos${missingSummary?` (${missingSummary})`:""}.`:""}`);
   }catch(err){
     alert("No pudimos leer el archivo. Verifica que sea un Excel o CSV válido y que incluya largo, ancho, alto y peso.");
   }

@@ -7,6 +7,15 @@
 <link rel="stylesheet" href="css/styles.css?v=2">
 </head>
 <body>
+<!--
+  Inventario de botones y acciones:
+  Header: Tabla maestra -> showPanel(6); Cotización final -> showPanel(7) + generarCotizacion().
+  Pasos: Servicio/Carga/Especiales/Analizador/Cotización -> showPanel(); Continuar -> continuarServicio(); Atrás -> showPanel().
+  Carga: Importar Excel/CSV -> importarArchivo(); Leer PDF -> importarArchivo(); Agregar carga -> agregarPieza(); Editar/Eliminar -> editarPieza()/eliminarPieza().
+  Analizador: Analizar mejor opción -> analizar(); Tabla maestra: Restaurar valores base -> restaurarVehiculos().
+  Cotización final: Analizador -> showPanel(5); Generar cotización -> generarCotizacion(); Exportar Excel -> exportarExcel();
+  Imprimir / guardar PDF -> imprimirCotizacion(); Reiniciar todo -> reiniciarTodo().
+-->
 <header class="topbar">
   <div class="brand"><img src="assets/logitrading-logo.png" alt="Logitrading" class="brand-logo"><div class="brand-name"><small>ENCUESTADOR DE SELECCIÓN DE VEHÍCULO</small></div></div>
   <div class="header-actions"><button class="btn ghost" onclick="showPanel(6)">⚙ Tabla maestra</button><button class="btn primary" onclick="showPanel(7);generarCotizacion()">Cotización final</button></div>
@@ -54,7 +63,7 @@
 
     <div id="panel3Placeholder"></div>
     <section class="card full panel" id="panel3">
-      <div class="section-title"><div><div class="eyebrow">Carga suelta</div><h2>Información de la carga</h2><div class="sub">Agrega cada referencia o grupo de piezas. Puedes editar cualquier registro antes de continuar.</div></div><div class="section-actions"><button class="btn" onclick="document.getElementById('excelInput').click()">Importar Excel/CSV</button><input type="file" id="excelInput" accept=".xlsx,.xls,.csv" style="display:none" onchange="importarArchivo(event)"><button class="btn" onclick="document.getElementById('pdfInput').click()">Leer PDF</button><input type="file" id="pdfInput" accept=".pdf" style="display:none" onchange="importarArchivo(event)"><button class="btn primary" onclick="agregarPieza()">+ Agregar carga</button></div></div>
+      <div class="section-title"><div><div class="eyebrow">Carga suelta</div><h2>Información de la carga</h2><div class="sub">Agrega cada referencia o grupo de piezas. Puedes editar cualquier registro antes de continuar.</div></div><div class="section-actions"><button class="btn import-excel" onclick="document.getElementById('excelInput').click()">Importar Excel/CSV</button><input type="file" id="excelInput" accept=".xlsx,.xls,.csv" style="display:none" onchange="importarArchivo(event)"><button class="btn import-pdf" onclick="document.getElementById('pdfInput').click()">Leer PDF</button><input type="file" id="pdfInput" accept=".pdf" style="display:none" onchange="importarArchivo(event)"><button class="btn primary" onclick="agregarPieza()">+ Agregar carga</button></div></div>
       <div class="footer-note" id="excelHelp" style="margin-bottom:14px">Busca automáticamente los datos básicos: <b>Largo/Longitud/Length, Ancho/Width, Alto/Altura/Height, Peso/Weight y Cantidad/Unidades/Quantity</b>. Descripción, unidades y campos especiales son opcionales. Las filas incompletas se informan y sus datos encontrados quedan disponibles para completar.</div>
       <div class="piece" id="pieceForm">
         <div class="fields">
@@ -147,9 +156,9 @@
     </section>
 
     <section class="card full panel" id="panel7">
-      <div class="section-title"><div><h2>6. Cotización final</h2><div class="sub">Resumen listo para revisar y enviar al transportador.</div></div><div class="quote-actions"><button class="btn" onclick="generarCotizacion()">Generar cotización</button><button class="btn" onclick="exportarExcel()">Exportar Excel</button><button class="btn danger" onclick="reiniciarTodo()">Reiniciar todo</button></div></div>
+      <div class="section-title"><div><h2>6. Cotización final</h2><div class="sub">Resumen ejecutivo listo para revisar y enviar al transportador.</div></div></div>
       <div id="quote" class="quote"><div class="empty">Aún no hay cotización. Registra la carga y analiza la mejor opción.</div></div>
-    <div class="panel-next"><button class="btn ghost" onclick="showPanel(5)">← Analizador</button><button class="btn" onclick="exportarExcel()">Exportar Excel</button><button class="btn primary" onclick="generarCotizacion()">Actualizar cotización</button><button class="btn danger" onclick="reiniciarTodo()">Reiniciar todo</button></div></section>
+    <div class="panel-next quote-actions"><button class="btn ghost" onclick="showPanel(5)">← Analizador</button><button class="btn primary" id="quoteGenerateBtn" onclick="generarCotizacion()" disabled>Generar cotización</button><button class="btn" onclick="exportarExcel()">Exportar Excel</button><button class="btn" onclick="imprimirCotizacion()">Imprimir / guardar PDF</button><button class="btn danger" onclick="reiniciarTodo()">Reiniciar todo</button></div></section>
   </div>
   <div class="footer-note">Recomendación preliminar: la selección final debe validarse con el transportador según vehículo real, ruta, normatividad, carrocería, estiba/distribución y permisos aplicables.</div>
 </main>
