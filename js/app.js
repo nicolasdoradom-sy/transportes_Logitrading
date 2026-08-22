@@ -35,7 +35,7 @@ function showPanel(n){
   updateDashboard();
   window.scrollTo({top:0,behavior:'smooth'});
 }
-function updateDashboard(){const t=typeof totals==='function'?totals():{ton:0,m3:0,refs:0};const a=typeof lastAnalysis!=='undefined'?lastAnalysis:null;const q=id=>document.getElementById(id);if(q('dashTon'))q('dashTon').textContent=(t.ton||0).toFixed(2)+' t';if(q('dashM3'))q('dashM3').textContent=(t.m3||0).toFixed(2)+' m³';if(q('dashRefs'))q('dashRefs').textContent=t.refs||0;if(a&&typeof validation==='function'){const v=validation(a);q('dashStatus').textContent=v==='green'?'Aprobado':v==='yellow'?'Revisar':'No compatible';q('dashDot').className='status-dot '+v;}else{q('dashStatus').textContent='Pendiente';q('dashDot').className='status-dot';}}
+function updateDashboard(){const t=typeof totals==='function'?totals():{weight:0,volume:0,refs:0};const a=typeof lastAnalysis!=='undefined'?lastAnalysis:null;const q=id=>document.getElementById(id);if(q('dashTon'))q('dashTon').textContent=(t.weight||0).toFixed(2)+' t';if(q('dashM3'))q('dashM3').textContent=(t.volume||0).toFixed(2)+' m³';if(q('dashRefs'))q('dashRefs').textContent=t.refs||0;if(a&&typeof validation==='function'){const v=validation(a);q('dashStatus').textContent=v.level==='green'?'Aprobado':v.level==='yellow'?'Revisar':'No compatible';q('dashDot').className='status-dot '+v.level;}else{q('dashStatus').textContent='Pendiente';q('dashDot').className='status-dot';}}
 
 const BASE_VEHICLES = [
  {name:"4 x 4",cap:1,vol:5.5,L:2.0,W:1.4,H:1.5,body:"Furgón - carpado platón",cargo:"Carga suelta / bultos / pallets",special:""},
@@ -106,10 +106,9 @@ function continuarServicio(){
   }
 
   if(tipo === "Contenedor"){
-    const peso = num("contPeso");
-    if(!peso){
-      alert("Ingresa el peso de la mercancía sin tara antes de continuar.");
-      $("contPeso")?.focus();
+    if(num("contCant") < 1){
+      alert("Indica una cantidad de contenedores válida.");
+      $("contCant")?.focus();
       return;
     }
   }
@@ -184,15 +183,143 @@ function renderPieces(){
 }
 function renderMeasuresTable(){
  const tbl=$("measuresTable"); if(!tbl)return;
+ if(isContainer()){
+  const count=Math.max(1,num("contCant"));
+  tbl.innerHTML=`<tr><td>Contenedor ${esc($("contTam").value)}</td><td>${count}</td><td class="muted-cell">Dimensiones según equipo</td><td>${((num("contMerc")+num("contTara"))/1000).toFixed(3)}</td><td>N/D</td></tr>`;
+  return;
+ }
  if(!pieces.length){tbl.innerHTML='<tr><td colspan="5" class="muted-cell" style="text-align:center;padding:16px">Sin referencias registradas.</td></tr>';return}
  tbl.innerHTML=pieces.map(p=>`<tr><td>${esc(p.desc)}</td><td>${p.q}</td><td class="muted-cell">${p.L.toFixed(2)}×${p.W.toFixed(2)}×${p.H.toFixed(2)}</td><td>${p.wt.toFixed(3)}</td><td>${(p.L*p.W*p.H*p.q).toFixed(2)}</td></tr>`).join("");
 }
+function isContainer(){return $("tipoCarga")?.value==="Contenedor"}
+function hasCargo(){return isContainer() ? num("contMerc")>0 && num("contCant")>=1 : pieces.length>0}
 function totals(){
- return pieces.reduce((a,p)=>{a.weight+=p.wt*p.q;a.volume+=p.L*p.W*p.H*p.q;a.area+=p.L*p.W*p.q; a.maxL=Math.max(a.maxL,p.L);a.maxW=Math.max(a.maxW,p.W);a.maxH=Math.max(a.maxH,p.H);return a},{weight:0,volume:0,area:0,maxL:0,maxW:0,maxH:0});
+ if(isContainer()){
+  const count=Math.max(1,num("contCant"));
+  return {weight:(num("contMerc")+num("contTara"))*count/1000,volume:0,area:0,refs:count,maxL:0,maxW:0,maxH:0};
+ }
+ return pieces.reduce((a,p)=>{a.weight+=p.wt*p.q;a.volume+=p.L*p.W*p.H*p.q;a.area+=p.L*p.W*p.q; a.maxL=Math.max(a.maxL,p.L);a.maxW=Math.max(a.maxW,p.W);a.maxH=Math.max(a.maxH,p.H);return a},{weight:0,volume:0,area:0,refs:pieces.length,maxL:0,maxW:0,maxH:0});
 }
 function esc(s){return String(s).replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]))}
 
-function normHeader(h){return String(h||"").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").trim()}
+function normHeader(h){return String(h||"").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-z0-9]/g,"")}
+function parseNumber(value){
+ const raw=String(value??"").trim().replace(/\s/g,"");
+ if(!raw)return NaN;
+ const numeric=(raw.match(/[+-]?[0-9][0-9.,]*/) || [""])[0];
+ if(!numeric)return NaN;
+ const normalized=numeric.includes(",")&&numeric.includes(".")
+  ? (numeric.lastIndexOf(",")>numeric.lastIndexOf(".")?numeric.replace(/\./g,"").replace(",","."):numeric.replace(/,/g,""))
+  : numeric.replace(",",".");
+ return Number(normalized);
+}
+function importValue(keys,names){
+ for(const name of names){
+  const exact=keys[normHeader(name)];
+  if(exact!==undefined&&String(exact).trim()!=="")return exact;
+ }
+ const key=Object.keys(keys).find(candidate=>names.some(name=>normHeader(name).length>1&&candidate.includes(normHeader(name))));
+ return key?keys[key]:undefined;
+}
+function normalizePdfText(value){return String(value||"").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/\s+/g," ").trim()}
+function findPdfMeasurement(text,names){
+ const aliases=names.map(name=>normalizePdfText(name).replace(/\s+/g,"\\s*"));
+ const match=new RegExp(`(?:${aliases.join("|")})[\\s.:=\\/-]*([0-9][0-9.,]*)\\s*(mm|cm|m|kg|lb|lbs|t|ton(?:eladas?)?)?`,"i").exec(text);
+ return match?{value:parseNumber(match[1]),unit:(match[2]||"").toLowerCase()}:null;
+}
+function findPdfNumber(text,names){
+ const measurement=findPdfMeasurement(text,names);
+ return measurement?measurement.value:NaN;
+}
+function convertPdfMeasurement(measurement,defaultUnit){
+ if(!measurement||!Number.isFinite(measurement.value))return NaN;
+ const unit=measurement.unit||defaultUnit;
+ if(["mm"].includes(unit))return measurement.value/1000;
+ if(["cm"].includes(unit))return measurement.value/100;
+ if(["kg"].includes(unit))return measurement.value/1000;
+ if(["lb","lbs"].includes(unit))return measurement.value*0.00045359237;
+ return measurement.value;
+}
+function pdfLines(items){
+ const groups=[];
+ items.forEach(item=>{
+  const group=groups.find(candidate=>Math.abs(candidate.y-item.transform[5])<3);
+  if(group)group.items.push(item);else groups.push({y:item.transform[5],items:[item]});
+ });
+ return groups.sort((a,b)=>b.y-a.y).map(group=>group.items.sort((a,b)=>a.transform[4]-b.transform[4]).map(item=>item.str).join(" ").trim()).filter(Boolean);
+}
+function pdfRecord(text,index){
+ const normalized=normalizePdfText(text);
+ const record={
+  desc:`Referencia PDF ${index}`,
+  q:findPdfMeasurement(normalized,["cantidad","cant","unidades","units","quantity","qty"]),
+  L:findPdfMeasurement(normalized,["largo","longitud","length"]),
+  W:findPdfMeasurement(normalized,["ancho","width"]),
+  H:findPdfMeasurement(normalized,["alto","altura","height"]),
+  wt:findPdfMeasurement(normalized,["peso","weight","gross weight","gross"])
+ };
+ const dimensionsUnit=/\b(m|metro|metros)\b/i.test(normalized)?"m":"cm";
+ const weightUnit=/\b(t|ton|tons|tonelada|toneladas)\b/i.test(normalized)?"t":"kg";
+ const missing=[!Number.isFinite(record.L?.value)&&"largo",!Number.isFinite(record.W?.value)&&"ancho",!Number.isFinite(record.H?.value)&&"alto",!Number.isFinite(record.wt?.value)&&"peso",!Number.isFinite(record.q?.value)&&"cantidad"].filter(Boolean);
+ return {record:{...record,L:convertPdfMeasurement(record.L,dimensionsUnit),W:convertPdfMeasurement(record.W,dimensionsUnit),H:convertPdfMeasurement(record.H,dimensionsUnit),wt:convertPdfMeasurement(record.wt,weightUnit),q:record.q?.value},missing};
+}
+function prepareIncompleteImport(result){
+ const record=result.record;
+ $("pDesc").value=record.desc;
+ $("pCant").value=Number.isFinite(record.q)?record.q:"";
+ $("pL").value=Number.isFinite(record.L)?record.L:"";
+ $("pA").value=Number.isFinite(record.W)?record.W:"";
+ $("pH").value=Number.isFinite(record.H)?record.H:"";
+ $("pPeso").value=Number.isFinite(record.wt)?record.wt:"";
+ $("pUnidad").value="Metros";$("pPesoUnidad").value="toneladas";calcPiecePreview();
+ $("excelHelp").textContent=`PDF leído parcialmente. Completa: ${result.missing.join(", ")}. Los valores encontrados quedaron en el formulario y no se agregó una referencia incompleta.`;
+}
+async function ocrPdfPages(documentPdf){
+ if(typeof Tesseract==="undefined")return [];
+ const lines=[];
+ for(let pageNumber=1;pageNumber<=documentPdf.numPages;pageNumber++){
+  const page=await documentPdf.getPage(pageNumber);
+  const viewport=page.getViewport({scale:1.6});
+  const canvas=document.createElement("canvas");
+  canvas.width=viewport.width;canvas.height=viewport.height;
+  await page.render({canvasContext:canvas.getContext("2d"),viewport}).promise;
+  const result=await Tesseract.recognize(canvas,"spa+eng");
+  lines.push(...String(result.data.text||"").split(/\r?\n/).filter(Boolean));
+ }
+ return lines;
+}
+async function importarPDF(file){
+ if(typeof pdfjsLib==="undefined")throw new Error("El lector PDF todavía no está disponible.");
+ pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+ const documentPdf=await pdfjsLib.getDocument({data:new Uint8Array(await file.arrayBuffer())}).promise;
+ const lines=[];
+ for(let pageNumber=1;pageNumber<=documentPdf.numPages;pageNumber++){
+  const page=await documentPdf.getPage(pageNumber);
+  const content=await page.getTextContent();
+  lines.push(...pdfLines(content.items));
+ }
+ let text=normalizePdfText(lines.join(" "));
+ const textRecord=pdfRecord(text,1);
+ if(text.length<30||!textRecord||textRecord.missing.length>2){
+  $("excelHelp").textContent="PDF escaneado detectado. Intentando reconocer el texto, esto puede tardar unos segundos...";
+  lines.push(...await ocrPdfPages(documentPdf));
+  text=normalizePdfText(lines.join(" "));
+ }
+ let records=lines.map((line,index)=>pdfRecord(line,index+1)).filter(result=>result&&result.missing.length===0).map(result=>result.record);
+ let partial=pdfRecord(lines.join(" "),1);
+ if(!records.length&&partial&&partial.missing.length===0)records=[partial.record];
+ let importadas=0;
+ records.forEach(record=>{pieces.push({...record,apilable:false,acostarse:false,sobresalir:false,fragil:false,peligrosa:false});importadas++});
+ renderPieces();
+ if(!importadas&&partial){prepareIncompleteImport(partial)}
+ const missing=partial?.missing||["largo","ancho","alto","peso","cantidad"];
+ alert(importadas?`PDF procesado correctamente: ${importadas} referencia(s) agregada(s).`:`PDF leído parcialmente. Falta: ${missing.join(", ")}. Completa esos datos en el formulario.`);
+}
+function importarArchivo(evt){
+ const file=evt.target.files[0]; if(!file)return;
+ if(file.name.toLowerCase().endsWith(".pdf")){importarPDF(file).catch(()=>alert("No pudimos leer el PDF. Verifica que contenga texto seleccionable y datos de dimensiones, peso y cantidad."));evt.target.value="";return}
+ importarExcel(evt);
+}
 function importarExcel(evt){
  const file=evt.target.files[0]; if(!file)return;
  const reader=new FileReader();
@@ -203,28 +330,30 @@ function importarExcel(evt){
     const sheet=wb.Sheets[wb.SheetNames[0]];
     const rows=XLSX.utils.sheet_to_json(sheet,{defval:""});
     if(!rows.length){alert("El archivo no tiene filas de datos.");return}
-    let importadas=0, omitidas=0;
+    let importadas=0, omitidas=0, faltantes={largo:0,ancho:0,alto:0,peso:0,cantidad:0};
     rows.forEach(row=>{
       const keys={}; Object.keys(row).forEach(k=>keys[normHeader(k)]=row[k]);
-      const get=(...names)=>{for(const n of names){if(keys[n]!==undefined && keys[n]!=="")return keys[n]} return undefined};
+      const get=(...names)=>importValue(keys,names);
       const desc=get("descripcion","referencia","item","producto")||`Referencia ${pieces.length+importadas+1}`;
-      const cant=parseFloat(get("cantidad","cant","und","unidades"))||1;
-      let L=parseFloat(get("largo","l","largo cm","largo (cm)"));
-      let W=parseFloat(get("ancho","a","ancho cm","ancho (cm)"));
-      let H=parseFloat(get("alto","h","alto cm","alto (cm)"));
-      let peso=parseFloat(get("peso","peso unitario","peso u"));
-      const unidad=String(get("unidad","unidad medida","unidad de medida")||"cm").toLowerCase();
-      const unidadPeso=String(get("unidad peso","unidad de peso","und peso")||"kg").toLowerCase();
-      if(!L||!W||!H||!peso){omitidas++;return}
-      if(unidad.startsWith("m")&&!unidad.startsWith("mm")){/* ya en metros */}else{L=L/100;W=W/100;H=H/100;}
-      if(unidadPeso.startsWith("t")){/* ya en toneladas */}else{peso=peso/1000;}
+      const cant=parseNumber(get("cantidad","cant","und","unidades","units","quantity","qty"));
+      let L=parseNumber(get("largo","longitud","length","l"));
+      let W=parseNumber(get("ancho","width","a"));
+      let H=parseNumber(get("alto","altura","height","h"));
+      let peso=parseNumber(get("peso","weight","peso unitario","peso u"));
+      const unidad=String(get("unidad","unidad medida","unidad de medida","dimension unit")||"cm").toLowerCase();
+      const unidadPeso=String(get("unidad peso","unidad de peso","und peso","weight unit")||"kg").toLowerCase();
+      const missing=[!L&&"largo",!W&&"ancho",!H&&"alto",!peso&&"peso",!cant&&"cantidad"].filter(Boolean);
+      if(missing.length){missing.forEach(field=>faltantes[field]++);omitidas++;return}
+      if(unidad.startsWith("mm")){L/=1000;W/=1000;H/=1000}else if(!unidad.startsWith("m")){L/=100;W/=100;H/=100}
+      if(unidadPeso.startsWith("lb")){peso*=0.00045359237}else if(!unidadPeso.startsWith("t")){peso/=1000}
       pieces.push({desc:String(desc),q:Math.max(1,cant),L,W,H,wt:peso,apilable:false,acostarse:false,sobresalir:false,fragil:false,peligrosa:false});
       importadas++;
     });
     renderPieces();
-    alert(`Importación completa: ${importadas} referencia(s) agregada(s)${omitidas?`, ${omitidas} fila(s) omitida(s) por datos incompletos`:""}.`);
+    const missingSummary=Object.entries(faltantes).filter(([,count])=>count).map(([field,count])=>`${field}: ${count}`).join(", ");
+    alert(`Importación completa: ${importadas} referencia(s) agregada(s)${omitidas?`, ${omitidas} fila(s) omitida(s) por datos incompletos${missingSummary?` (${missingSummary})`:""}`:""}.`);
   }catch(err){
-    alert("No se pudo leer el archivo. Verifica que sea un Excel/CSV válido con columnas de descripción, cantidad, largo, ancho, alto y peso.");
+    alert("No pudimos leer el archivo. Verifica que sea un Excel o CSV válido y que incluya largo, ancho, alto y peso.");
   }
   evt.target.value="";
  };
@@ -263,7 +392,7 @@ function analyzeVehicle(v,t,margin=0.10){
  return {v,compatible,wOcc,vOcc,dimsOk,weightOk,volOk,special,areaApprox,score};
 }
 function analyzeSet(){
- const t=totals(); if(!pieces.length)return {t,options:[],best:null};
+ const t=totals(); if(!hasCargo())return {t,options:[],best:null};
  const normal=vehicles.map(v=>analyzeVehicle(v,t)).filter(Boolean);
  normal.sort((a,b)=>a.score-b.score);
  const compatible=normal.filter(x=>x.compatible);
@@ -310,10 +439,28 @@ function analizar(){
  generarCotizacion();
 }
 function money(v){ if(isNaN(v))v=0; return "$ "+Number(v).toLocaleString("es-CO",{minimumFractionDigits:0,maximumFractionDigits:0}); }
+function exportarExcel(){
+ if(typeof XLSX==="undefined"){alert("No está disponible el exportador Excel.");return}
+ const rows=isContainer()?[{
+  Descripción:`Contenedor ${$("contTam").value}`,
+  Cantidad:Math.max(1,num("contCant")),
+  Largo:"",Ancho:"",Alto:"",
+  Unidad:"m",
+  Peso:num("contMerc")+num("contTara"),
+  "Unidad de peso":"kg"
+ }]:pieces.map(piece=>({
+  Descripción:piece.desc,Cantidad:piece.q,Largo:piece.L,Ancho:piece.W,Alto:piece.H,
+  Unidad:"m",Peso:piece.wt*1000,"Unidad de peso":"kg"
+ }));
+ if(!rows.length){alert("No hay datos de carga para exportar.");return}
+ const sheet=XLSX.utils.json_to_sheet(rows);
+ const workbook=XLSX.utils.book_new();XLSX.utils.book_append_sheet(workbook,sheet,"Carga");
+ XLSX.writeFile(workbook,"logitrading-carga.xlsx");
+}
 function generarCotizacion(){
   // Siempre recalculamos para que la cotización use los últimos datos ingresados.
-  if(!pieces.length){
-    $("quote").innerHTML='<div class="empty">⚠ Agrega al menos una pieza o grupo de piezas antes de generar la cotización.</div>';
+  if(!hasCargo()){
+    $("quote").innerHTML='<div class="empty">⚠ Completa los datos básicos de la carga antes de generar la cotización.</div>';
     return;
   }
   const a=analyzeSet();

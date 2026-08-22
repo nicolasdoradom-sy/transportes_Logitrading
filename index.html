@@ -40,20 +40,21 @@
       <div class="fields">
         <div class="field"><label>Tamaño</label><select id="contTam"><option>20'</option><option>40'</option><option>40 HC</option></select></div>
         <div class="field"><label>Tipo</label><select id="contTipo"><option>Dry</option><option>Reefer</option><option>Open Top</option><option>Flat Rack</option><option>Tank</option></select></div>
-        <div class="field"><label>Peso mercancía sin tara (kg)</label><input id="contMerc" type="number" min="0" step="0.01"></div>
-        <div class="field"><label>Tara contenedor (kg)</label><input id="contTara" type="number" min="0" step="0.01"></div>
-        <div class="field"><label>N.º contenedores</label><input id="contCant" type="number" min="1" value="1"></div>
+        <div class="field"><label>Peso mercancía sin tara (kg) <span class="optional-mark">Si está disponible</span></label><input id="contMerc" type="number" min="0" step="0.01" placeholder="Ej. 18500"></div>
+        <div class="field"><label>Tara contenedor (kg) <span class="optional-mark">Opcional</span></label><input id="contTara" type="number" min="0" step="0.01" placeholder="Si está disponible"></div>
+        <div class="field"><label>N.º contenedores <span class="required-mark">Obligatorio</span></label><input id="contCant" type="number" min="1" value="1"></div>
         <div class="field"><label>N.º de contenedor</label><input id="contNum" placeholder="Si ya está disponible"></div>
         <div class="field"><label>Devolución del vacío</label><select id="contVacio"><option>No</option><option>Sí</option></select></div>
         <div class="field"><label>Patio / ciudad devolución</label><input id="contPatio"></div>
       </div>
       <div class="footer-note">Para contenedores, el peso bruto se calcula como mercancía + tara y se valida frente al equipo portacontenedor correspondiente.</div>
+      <div class="panel-next"><span class="footer-note">El número y el patio de devolución pueden completarse después.</span><button class="btn primary" type="button" onclick="continuarServicio()">Continuar →</button></div>
     </section>
 
     <div id="panel3Placeholder"></div>
     <section class="card full panel" id="panel3">
-      <div class="section-title"><div><h2>3. Piezas y cubicaje</h2><div class="sub">Agrega cada referencia o grupo de piezas. El sistema reinicia el formulario de pieza al guardar y permite editar cualquier registro.</div></div><div style="display:flex;gap:8px"><button class="btn" onclick="document.getElementById('excelInput').click()">📎 Importar Excel</button><input type="file" id="excelInput" accept=".xlsx,.xls,.csv" style="display:none" onchange="importarExcel(event)"><button class="btn primary" onclick="agregarPieza()">+ Agregar otra pieza o grupo</button></div></div>
-      <div class="footer-note" id="excelHelp" style="margin-bottom:14px">El Excel debe tener columnas: <b>Descripción, Cantidad, Largo, Ancho, Alto, Unidad (cm/m), Peso, Unidad de peso (kg/ton)</b>. La primera fila debe ser el encabezado. Filas sin largo/ancho/alto/peso válidos se ignoran.</div>
+      <div class="section-title"><div><h2>3. Piezas y cubicaje</h2><div class="sub">Agrega cada referencia o grupo de piezas. El sistema reinicia el formulario de pieza al guardar y permite editar cualquier registro.</div></div><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" onclick="document.getElementById('excelInput').click()">📎 Importar Excel/CSV</button><input type="file" id="excelInput" accept=".xlsx,.xls,.csv" style="display:none" onchange="importarArchivo(event)"><button class="btn" onclick="document.getElementById('pdfInput').click()">▣ Leer PDF</button><input type="file" id="pdfInput" accept=".pdf" style="display:none" onchange="importarArchivo(event)"><button class="btn primary" onclick="agregarPieza()">+ Agregar otra pieza o grupo</button></div></div>
+      <div class="footer-note" id="excelHelp" style="margin-bottom:14px">Busca automáticamente los datos básicos: <b>Largo/Longitud/Length, Ancho/Width, Alto/Altura/Height, Peso/Weight y Cantidad/Unidades/Quantity</b>. Descripción, unidades y campos especiales son opcionales. Las filas incompletas se informan y sus datos encontrados quedan disponibles para completar.</div>
       <div class="piece" id="pieceForm">
         <div class="fields">
           <div class="field"><label>Descripción / referencia</label><input id="pDesc" placeholder="Ej. Pallet producto A"></div>
@@ -145,9 +146,9 @@
     </section>
 
     <section class="card full panel" id="panel7">
-      <div class="section-title"><div><h2>6. Cotización final</h2><div class="sub">Resumen listo para revisar y enviar al transportador.</div></div><div><button class="btn" onclick="generarCotizacion()">Generar cotización</button> <button class="btn danger" onclick="reiniciarTodo()">Reiniciar todo</button></div></div>
+      <div class="section-title"><div><h2>6. Cotización final</h2><div class="sub">Resumen listo para revisar y enviar al transportador.</div></div><div class="quote-actions"><button class="btn" onclick="generarCotizacion()">Generar cotización</button><button class="btn" onclick="exportarExcel()">Exportar Excel</button><button class="btn danger" onclick="reiniciarTodo()">Reiniciar todo</button></div></div>
       <div id="quote" class="quote"><div class="empty">Aún no hay cotización. Registra la carga y analiza la mejor opción.</div></div>
-    <div class="panel-next"><button class="btn ghost" onclick="showPanel(5)">← Analizador</button><button class="btn primary" onclick="generarCotizacion()">Actualizar cotización</button><button class="btn danger" onclick="reiniciarTodo()">Reiniciar todo</button></div></section>
+    <div class="panel-next"><button class="btn ghost" onclick="showPanel(5)">← Analizador</button><button class="btn" onclick="exportarExcel()">Exportar Excel</button><button class="btn primary" onclick="generarCotizacion()">Actualizar cotización</button><button class="btn danger" onclick="reiniciarTodo()">Reiniciar todo</button></div></section>
   </div>
   <div class="footer-note">Recomendación preliminar: la selección final debe validarse con el transportador según vehículo real, ruta, normatividad, carrocería, estiba/distribución y permisos aplicables.</div>
 </main>
@@ -157,4 +158,6 @@
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/5.0.4/tesseract.min.js"></script>
 <script src="js/app.js"></script>

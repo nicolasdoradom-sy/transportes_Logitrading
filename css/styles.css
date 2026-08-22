@@ -109,3 +109,17 @@ button,input,select,textarea{font:inherit} button{cursor:pointer}
   .final-rec-grid div{background:#fafafa;border:1px solid #ddd}
   a{color:#111}
 }
+
+/* Ajustes de legibilidad para los flujos de carga */
+.required-mark,.optional-mark{display:inline-block;margin-left:5px;font-size:9px;font-weight:800;letter-spacing:.04em;text-transform:uppercase}
+.required-mark{color:var(--orange2)}
+.optional-mark{color:var(--muted)}
+#panel2 .panel-next{align-items:center}
+#panel2 .panel-next .footer-note{margin:0;text-align:left}
+@media(max-width:600px){
+  #panel2 .panel-next{align-items:stretch;flex-direction:column}
+  #panel2 .panel-next .btn{width:100%}
+  .section-title{align-items:flex-start;flex-direction:column;gap:12px}
+  .section-title>.btn,.section-title>div+div{width:100%}
+  .section-title>.btn{min-height:42px}
+}
