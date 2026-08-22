@@ -1,0 +1,473 @@
+
+function showPanel(n){
+  // Limpiar los paneles dinámicos exclusivos de Servicio cuando
+  // el usuario cambia a otra etapa. Así Contenedor/Piezas y el botón
+  // "Continuar" nunca aparecen en Especiales, Analizador o Cotización.
+  const panelContenedor = $("panel2");
+  const panelCarga = $("panel3");
+  const serviceContinue = $("servicioContinue");
+
+  if(n !== 1){
+    panelContenedor?.classList.remove("active","inline-carga-suelta","service-side-active");
+    panelCarga?.classList.remove("active","inline-carga-suelta","service-side-active");
+    if(serviceContinue) serviceContinue.style.display = "none";
+  }else{
+    if(serviceContinue) serviceContinue.style.display = "flex";
+  }
+
+  if((n===2 || n===3) && $("tipoCarga")){
+    showPanel(1);
+    toggleContainer();
+    const tipo = $("tipoCarga").value;
+    setTimeout(()=>scrollToId(tipo === "Contenedor" ? "panel2" : "panel3"),80);
+    return;
+  }
+
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  const p=document.getElementById('panel'+n);
+  if(p)p.classList.add('active');
+
+  document.querySelectorAll('.app-tab').forEach(tab=>{
+    tab.classList.toggle('active',Number(tab.dataset.panel)===n);
+  });
+
+  if(n===1) toggleContainer();
+  updateDashboard();
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+function updateDashboard(){const t=typeof totals==='function'?totals():{ton:0,m3:0,refs:0};const a=typeof lastAnalysis!=='undefined'?lastAnalysis:null;const q=id=>document.getElementById(id);if(q('dashTon'))q('dashTon').textContent=(t.ton||0).toFixed(2)+' t';if(q('dashM3'))q('dashM3').textContent=(t.m3||0).toFixed(2)+' m³';if(q('dashRefs'))q('dashRefs').textContent=t.refs||0;if(a&&typeof validation==='function'){const v=validation(a);q('dashStatus').textContent=v==='green'?'Aprobado':v==='yellow'?'Revisar':'No compatible';q('dashDot').className='status-dot '+v;}else{q('dashStatus').textContent='Pendiente';q('dashDot').className='status-dot';}}
+
+const BASE_VEHICLES = [
+ {name:"4 x 4",cap:1,vol:5.5,L:2.0,W:1.4,H:1.5,body:"Furgón - carpado platón",cargo:"Carga suelta / bultos / pallets",special:""},
+ {name:"Turbo",cap:4.5,vol:18.5,L:4.5,W:2.0,H:2.1,body:"Furgón - carpado platón",cargo:"Carga suelta / bultos / pallets",special:""},
+ {name:"600 sencillo",cap:8,vol:30.5,L:5.9,W:2.3,H:2.2,body:"Furgón - carpado / plancha",cargo:"Carga suelta / bultos / pallets / contenedor 20'",special:""},
+ {name:"Doble troque",cap:17,vol:35.5,L:7.5,W:2.3,H:2.2,body:"Furgón - carpado / plancha",cargo:"Carga suelta / bultos / pallets / contenedor 20'",special:""},
+ {name:"Minimula patineta",cap:18,vol:71.5,L:12,W:2.4,H:2.3,body:"Furgón - carpado plancha - grillo",cargo:"Carga suelta / bultos / contenedor 20' (combinados)",special:""},
+ {name:"Mula",cap:35,vol:71.5,L:12,W:2.4,H:2.3,body:"Furgón - carpado plancha - grillo",cargo:"Carga suelta / bultos / contenedor 40' (combinados)",special:""},
+ {name:"Carro tanque / niñera",cap:30,vol:null,L:12,W:2.4,H:2.4,body:"Tanque / tráiler hidráulico o de guaya",cargo:"Líquidos / vehículos",special:"Carga especializada"},
+ {name:"Tolva",cap:35,vol:null,L:12,W:2.4,H:2.4,body:"Tolva",cargo:"Granel",special:"Carga especializada"},
+ {name:"Cama baja / tolva",cap:35,vol:null,L:null,W:null,H:null,body:"Tráiler cama baja",cargo:"Cargas extra dimensionadas",special:"Según resolución / permiso"},
+ {name:"Modular",cap:100,vol:null,L:null,W:null,H:null,body:"Tráiler modular",cargo:"Cargas extra dimensionadas",special:"Según resolución / permiso"},
+ {name:"Van / furgón liviano",cap:1.2,vol:7,L:3.0,W:1.6,H:1.45,body:"Furgón cerrado",cargo:"Paquetería / urbana",special:"Configurable"},
+ {name:"NHR",cap:2.5,vol:12,L:3.6,W:1.8,H:1.8,body:"Furgón / estacas",cargo:"Carga urbana liviana",special:"Configurable"},
+ {name:"NPR",cap:4,vol:16,L:4.2,W:1.9,H:2.0,body:"Furgón / estacas",cargo:"Distribución urbana",special:"Configurable"},
+ {name:"NQR",cap:6,vol:24,L:5.0,W:2.1,H:2.1,body:"Furgón / estacas",cargo:"Carga urbana mayor",special:"Configurable"},
+ {name:"Furgón refrigerado",cap:8,vol:28,L:5.8,W:2.25,H:2.2,body:"Furgón refrigerado",cargo:"Carga con temperatura controlada",special:"Refrigeración"},
+ {name:"Plataforma",cap:18,vol:null,L:8,W:2.5,H:2.5,body:"Plataforma",cargo:"Equipos / estructuras",special:"Carga especial"},
+ {name:"Portacontenedor 20'",cap:30,vol:null,L:6.1,W:2.44,H:2.59,body:"Portacontenedor",cargo:"Contenedor 20'",special:"Validar peso bruto y ruta"},
+ {name:"Portacontenedor 40'",cap:35,vol:null,L:12.2,W:2.44,H:2.9,body:"Portacontenedor",cargo:"Contenedor 40 / 40 HC",special:"Validar peso bruto y ruta"},
+ {name:"Cama alta extensible",cap:35,vol:null,L:14,W:2.5,H:3,body:"Cama extensible",cargo:"Carga larga / especial",special:"Permiso según caso"}
+];
+let vehicles = JSON.parse(localStorage.getItem("lt_vehicles")||"null") || BASE_VEHICLES.map(v=>({...v}));
+let pieces = [];
+let lastAnalysis = null;
+let editingIndex = null;
+
+function $(id){return document.getElementById(id)}
+function num(id){return parseFloat($(id).value)||0}
+function scrollToId(id){$(id).scrollIntoView({behavior:"smooth"})}
+function toggleContainer(){
+  const tipo = $("tipoCarga").value;
+  const serviceContinue = $("servicioContinue");
+  if(serviceContinue) serviceContinue.style.display = "flex";
+  const panelContenedor = $("panel2");
+  const panelCarga = $("panel3");
+
+  if(!panelContenedor || !panelCarga) return;
+
+  // Al entrar por primera vez a Servicio no mostramos ningún formulario
+  // secundario. Aparece únicamente después de que el usuario seleccione
+  // explícitamente el tipo de carga.
+  panelContenedor.classList.remove("active","inline-carga-suelta","service-side-active");
+  panelCarga.classList.remove("active","inline-carga-suelta","service-side-active");
+
+  if(!tipo) return;
+
+  if(tipo === "Contenedor"){
+    panelContenedor.classList.add("inline-carga-suelta","service-side-active");
+  }else if(tipo === "Carga suelta"){
+    panelCarga.classList.add("inline-carga-suelta","service-side-active");
+  }
+}
+function continuarServicio(){
+  const tipo = $("tipoCarga").value;
+
+  if(!tipo){
+    alert("Primero selecciona el tipo de carga.");
+    $("tipoCarga").focus();
+    return;
+  }
+
+  if(tipo === "Carga suelta" && (!pieces || pieces.length === 0)){
+    alert("Agrega al menos una pieza antes de continuar.");
+    const p = $("panel3");
+    if(p) p.scrollIntoView({behavior:"smooth",block:"start"});
+    return;
+  }
+
+  if(tipo === "Contenedor"){
+    const peso = num("contPeso");
+    if(!peso){
+      alert("Ingresa el peso de la mercancía sin tara antes de continuar.");
+      $("contPeso")?.focus();
+      return;
+    }
+  }
+
+  showPanel(4);
+}
+
+function irDesdeServicio(){
+  const tipo = $("tipoCarga").value;
+
+  if(tipo === "Contenedor" || tipo === "Carga suelta"){
+    toggleContainer();
+    setTimeout(()=>scrollToId(tipo === "Contenedor" ? "panel2" : "panel3"),80);
+    return;
+  }
+
+  showPanel(4);
+}
+function volverACarga(){
+  showPanel(1);
+  toggleContainer();
+  const tipo = $("tipoCarga").value;
+  setTimeout(()=>scrollToId(tipo === "Contenedor" ? "panel2" : "panel3"),80);
+}
+function unitToM(v,u){return u==="Centímetros"?v/100:v}
+function weightToT(v,u){return u==="kg"?v/1000:v}
+
+function calcPiecePreview(){
+ const q=Math.max(1,num("pCant")), L=unitToM(num("pL"),$("pUnidad").value), W=unitToM(num("pA"),$("pUnidad").value), H=unitToM(num("pH"),$("pUnidad").value);
+ const wt=weightToT(num("pPeso"),$("pPesoUnidad").value);
+ $("previewPiece").innerHTML=(L&&W&&H?`Volumen unitario: <b>${(L*W*H).toFixed(2)} m³</b> · volumen total: <b>${(L*W*H*q).toFixed(2)} m³</b>`:"Ingresa medidas")+" · "+(wt?`peso total: <b>${(wt*q).toFixed(3)} t</b>`:"ingresa peso");
+}
+["pCant","pL","pA","pH","pPeso","pUnidad","pPesoUnidad"].forEach(id=>$(id).addEventListener("input",calcPiecePreview));
+
+function addPieceObject(){
+ const q=Math.max(1,num("pCant")), L=unitToM(num("pL"),$("pUnidad").value), W=unitToM(num("pA"),$("pUnidad").value), H=unitToM(num("pH"),$("pUnidad").value), wt=weightToT(num("pPeso"),$("pPesoUnidad").value);
+ if(!L||!W||!H||!wt){alert("Completa cantidad, largo, ancho, alto y peso de la pieza.");return null}
+ return {desc:$("pDesc").value.trim()||`Referencia ${pieces.length+1}`,q,L,W,H,wt,apilable:$("pApilable").checked,acostarse:$("pAcostarse").checked,sobresalir:$("pSobresalir").checked,fragil:$("pFragil").checked,peligrosa:$("pPeligrosa").checked};
+}
+function resetPieceForm(){
+ ["pDesc","pL","pA","pH","pPeso"].forEach(id=>$(id).value="");
+ $("pCant").value=1;$("pUnidad").value="Centímetros";$("pPesoUnidad").value="kg";
+ ["pApilable","pAcostarse","pSobresalir","pFragil","pPeligrosa"].forEach(id=>$(id).checked=false);
+ editingIndex=null; calcPiecePreview();
+}
+function agregarPieza(){
+ const p=addPieceObject(); if(!p)return;
+ if(editingIndex!==null){pieces[editingIndex]=p}else pieces.push(p);
+ renderPieces(); resetPieceForm(); scrollToId("pieceForm");
+}
+function editarPieza(i){
+ const p=pieces[i]; editingIndex=i;
+ $("pDesc").value=p.desc;$("pCant").value=p.q;$("pL").value=p.L;$("pA").value=p.W;$("pH").value=p.H;$("pUnidad").value="Metros";$("pPeso").value=p.wt;$("pPesoUnidad").value="toneladas";
+ $("pApilable").checked=p.apilable;$("pAcostarse").checked=p.acostarse;$("pSobresalir").checked=p.sobresalir;$("pFragil").checked=p.fragil;$("pPeligrosa").checked=p.peligrosa;
+ calcPiecePreview();scrollToId("pieceForm");
+}
+function eliminarPieza(i){if(confirm("¿Eliminar esta referencia?")){pieces.splice(i,1);renderPieces()}}
+function renderPieces(){
+ let el=$("pieceList");
+ if(!pieces.length){el.innerHTML='<div class="empty">No hay referencias guardadas. Agrega la primera pieza o grupo, o impórtalas desde Excel.</div>'}
+ else el.innerHTML=pieces.map((p,i)=>`<div class="piece"><div class="piece-grid">
+ <div><b>${esc(p.desc)}</b><small>${p.q} und · ${p.L.toFixed(2)} × ${p.W.toFixed(2)} × ${p.H.toFixed(2)} m</small></div>
+ <div><small>Peso</small><b>${(p.wt*p.q).toFixed(3)} t</b></div>
+ <div><small>Volumen</small><b>${(p.L*p.W*p.H*p.q).toFixed(2)} m³</b></div>
+ <div><small>Área piso</small><b>${(p.L*p.W*p.q).toFixed(2)} m²</b></div>
+ <div><small>Apilable</small><b>${p.apilable?"Sí":"No"}</b></div>
+ <div><small>Estado</small><b>${p.peligrosa?"Peligrosa":p.fragil?"Frágil":"Normal"}</b></div>
+ <div style="display:flex;gap:5px"><button class="iconbtn" onclick="editarPieza(${i})" title="Editar">✎</button><button class="iconbtn" onclick="eliminarPieza(${i})" title="Eliminar">×</button></div>
+ </div></div>`).join("");
+ const t=totals();$("totalTon").textContent=t.weight.toFixed(3)+" t";$("totalM3").textContent=t.volume.toFixed(2)+" m³";$("totalArea").textContent=t.area.toFixed(2)+" m²";$("totalRefs").textContent=pieces.length;
+ renderMeasuresTable();
+}
+function renderMeasuresTable(){
+ const tbl=$("measuresTable"); if(!tbl)return;
+ if(!pieces.length){tbl.innerHTML='<tr><td colspan="5" class="muted-cell" style="text-align:center;padding:16px">Sin referencias registradas.</td></tr>';return}
+ tbl.innerHTML=pieces.map(p=>`<tr><td>${esc(p.desc)}</td><td>${p.q}</td><td class="muted-cell">${p.L.toFixed(2)}×${p.W.toFixed(2)}×${p.H.toFixed(2)}</td><td>${p.wt.toFixed(3)}</td><td>${(p.L*p.W*p.H*p.q).toFixed(2)}</td></tr>`).join("");
+}
+function totals(){
+ return pieces.reduce((a,p)=>{a.weight+=p.wt*p.q;a.volume+=p.L*p.W*p.H*p.q;a.area+=p.L*p.W*p.q; a.maxL=Math.max(a.maxL,p.L);a.maxW=Math.max(a.maxW,p.W);a.maxH=Math.max(a.maxH,p.H);return a},{weight:0,volume:0,area:0,maxL:0,maxW:0,maxH:0});
+}
+function esc(s){return String(s).replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]))}
+
+function normHeader(h){return String(h||"").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").trim()}
+function importarExcel(evt){
+ const file=evt.target.files[0]; if(!file)return;
+ const reader=new FileReader();
+ reader.onload=function(e){
+  try{
+    const data=new Uint8Array(e.target.result);
+    const wb=XLSX.read(data,{type:"array"});
+    const sheet=wb.Sheets[wb.SheetNames[0]];
+    const rows=XLSX.utils.sheet_to_json(sheet,{defval:""});
+    if(!rows.length){alert("El archivo no tiene filas de datos.");return}
+    let importadas=0, omitidas=0;
+    rows.forEach(row=>{
+      const keys={}; Object.keys(row).forEach(k=>keys[normHeader(k)]=row[k]);
+      const get=(...names)=>{for(const n of names){if(keys[n]!==undefined && keys[n]!=="")return keys[n]} return undefined};
+      const desc=get("descripcion","referencia","item","producto")||`Referencia ${pieces.length+importadas+1}`;
+      const cant=parseFloat(get("cantidad","cant","und","unidades"))||1;
+      let L=parseFloat(get("largo","l","largo cm","largo (cm)"));
+      let W=parseFloat(get("ancho","a","ancho cm","ancho (cm)"));
+      let H=parseFloat(get("alto","h","alto cm","alto (cm)"));
+      let peso=parseFloat(get("peso","peso unitario","peso u"));
+      const unidad=String(get("unidad","unidad medida","unidad de medida")||"cm").toLowerCase();
+      const unidadPeso=String(get("unidad peso","unidad de peso","und peso")||"kg").toLowerCase();
+      if(!L||!W||!H||!peso){omitidas++;return}
+      if(unidad.startsWith("m")&&!unidad.startsWith("mm")){/* ya en metros */}else{L=L/100;W=W/100;H=H/100;}
+      if(unidadPeso.startsWith("t")){/* ya en toneladas */}else{peso=peso/1000;}
+      pieces.push({desc:String(desc),q:Math.max(1,cant),L,W,H,wt:peso,apilable:false,acostarse:false,sobresalir:false,fragil:false,peligrosa:false});
+      importadas++;
+    });
+    renderPieces();
+    alert(`Importación completa: ${importadas} referencia(s) agregada(s)${omitidas?`, ${omitidas} fila(s) omitida(s) por datos incompletos`:""}.`);
+  }catch(err){
+    alert("No se pudo leer el archivo. Verifica que sea un Excel/CSV válido con columnas de descripción, cantidad, largo, ancho, alto y peso.");
+  }
+  evt.target.value="";
+ };
+ reader.readAsArrayBuffer(file);
+}
+
+function specialCompatibility(v,t){
+ const reqClosed=$("cerrado").value==="Sí", reqTemp=$("temp").value==="Sí", reqDanger=$("peligrosa").value==="Sí"||pieces.some(p=>p.peligrosa), reqProject=$("tipoCarga").value==="Proyecto"||$("equipo").value!=="No", over=$("sobredim").value==="Sí";
+ if(reqTemp && !/refrigerado/i.test(v.body) && v.name!=="Furgón refrigerado") return false;
+ if(reqClosed && !/Furgón|furgón|carpado/i.test(v.body)) return false;
+ if(reqDanger && /4 x 4|Van|NHR|NPR/i.test(v.name)) return false;
+ if(over && !/cama|modular|plataforma|extensible|mula|Minimula/i.test(v.name)) return false;
+ if(reqProject && !/plataforma|cama|modular|Mula|Minimula|Doble troque/i.test(v.name)) return false;
+ return true;
+}
+function containerCompatibility(v){
+ if($("tipoCarga").value!=="Contenedor") return true;
+ const tam=$("contTam").value;
+ if(tam==="20'" && !/20|Minimula|Mula|Doble|600/i.test(v.cargo+" "+v.name)) return false;
+ if((tam==="40'"||tam==="40 HC") && !/40|Mula|portacontenedor/i.test(v.cargo+" "+v.name)) return false;
+ return /Portacontenedor|Minimula|Mula|Doble troque|600 sencillo/i.test(v.name+" "+v.body);
+}
+function analyzeVehicle(v,t,margin=0.10){
+ if(v.cap===null||v.cap<=0)return null;
+ const needWeight=t.weight*(1+margin);
+ const needVol=t.volume*(1+margin);
+ const dimsOk=v.L===null|| (t.maxL<=v.L && t.maxW<=v.W && t.maxH<=v.H);
+ const weightOk=needWeight<=v.cap;
+ const volOk=v.vol===null || needVol<=v.vol;
+ const special=specialCompatibility(v,t)&&containerCompatibility(v);
+ const areaApprox=v.L&&v.W ? t.area*(1+margin)<=v.L*v.W : true;
+ const compatible=weightOk&&volOk&&dimsOk&&special&&areaApprox;
+ const wOcc=v.cap? t.weight/v.cap*100:0;
+ const vOcc=v.vol? t.volume/v.vol*100:0;
+ const score=compatible ? (v.cap*0.45+(v.vol||999)*0.25+(v.L||99)*(v.W||99)*0.15+vOcc*0.1+wOcc*0.05) : Infinity;
+ return {v,compatible,wOcc,vOcc,dimsOk,weightOk,volOk,special,areaApprox,score};
+}
+function analyzeSet(){
+ const t=totals(); if(!pieces.length)return {t,options:[],best:null};
+ const normal=vehicles.map(v=>analyzeVehicle(v,t)).filter(Boolean);
+ normal.sort((a,b)=>a.score-b.score);
+ const compatible=normal.filter(x=>x.compatible);
+ if(compatible.length)return {t,options:normal,best:compatible[0]};
+ // If no single vehicle, find minimum combination using repeated vehicles for scalable standard vehicles.
+ const candidates=vehicles.filter(v=>v.cap>0 && v.name!=="Cama baja / tolva" && v.name!=="Modular").map(v=>{
+   const byWeight=Math.ceil(t.weight/(v.cap*0.9));
+   const byVol=v.vol?Math.ceil(t.volume/(v.vol*0.9)):1;
+   const count=Math.max(1,byWeight,byVol);
+   const dims=v.L===null || (t.maxL<=v.L&&t.maxW<=v.W&&t.maxH<=v.H);
+   const special=specialCompatibility(v,t)&&containerCompatibility(v);
+   return {v,count,dims,special,wOcc:(t.weight/(v.cap*count))*100,vOcc:v.vol?(t.volume/(v.vol*count))*100:0,score:count*100+v.cap+(v.vol||0)/10};
+ }).filter(x=>x.dims&&x.special).sort((a,b)=>a.score-b.score);
+ return {t,options:normal,best:candidates.length?{...candidates[0],multi:true}:null};
+}
+function validation(a){
+ const errs=[], warns=[];
+ if(!a.best){errs.push("No existe un vehículo compatible con los datos registrados. Revisa peso, dimensiones, volumen y condiciones especiales.");return {level:"red",errs,warns}}
+ if(a.best.multi) warns.push(`Se requieren aproximadamente ${a.best.count} unidades de ${a.best.v.name}. La combinación debe confirmarse con el transportador.`);
+ const t=a.t, v=a.best.v;
+ const wo=a.best.wOcc, vo=a.best.vOcc;
+ if(wo>90||vo>90)warns.push("Ocupación superior al 90 %: se recomienda confirmar distribución y disponibilidad.");
+ if(wo>100||vo>100)errs.push("La carga supera la capacidad estimada de la combinación.");
+ if(!a.best.dimsOk)errs.push("Una o más piezas exceden las dimensiones internas disponibles.");
+ if(t.area>0 && v.L&&v.W && t.area/(v.L*v.W)>0.9)warns.push("El área de piso está cercana al límite. El cubicaje por sí solo no garantiza que los pallets/piezas quepan.");
+ if(pieces.some(p=>!p.apilable))warns.push("Hay carga no apilable. La distribución real del piso debe validarse.");
+ if($("sobredim").value==="Sí")warns.push("Carga sobredimensionada: puede requerir permisos, escolta o revisión especializada.");
+ if($("peligrosa").value==="Sí"||pieces.some(p=>p.peligrosa))warns.push("Mercancía peligrosa: validar ONU, clase, documentación y vehículo autorizado.");
+ if($("temp").value==="Sí")warns.push("Se requiere control de temperatura. Confirmar rango y equipo refrigerado.");
+ return {level:errs.length?"red":warns.length?"yellow":"green",errs,warns}
+}
+function analizar(){
+ const a=analyzeSet(); lastAnalysis=a; const val=a.best?validation(a):{level:"blue",errs:["Agrega al menos una pieza."],warns:[]};
+ $("alerts").innerHTML=[...val.errs.map(x=>`<div class="alert red">⚠ ${esc(x)}</div>`),...val.warns.map(x=>`<div class="alert yellow">⚠ ${esc(x)}</div>`),(!val.errs.length&&!val.warns.length?`<div class="alert green">✓ La combinación cumple peso, volumen, dimensiones y condiciones registradas.</div>`:"")].join("");
+ renderMeasuresTable();
+ if(!a.best){$("recommendation").innerHTML="";return}
+ const b=a.best,v=b.v, badge=val.level;
+ $("recommendation").innerHTML=`<div class="recommend">
+ <div class="rec-top"><div><div class="eyebrow">RECOMENDACIÓN ${b.multi?"DE COMBINACIÓN":"PRINCIPAL"}</div><div class="rec-name">${esc(v.name)} ${b.multi?`× ${b.count}`:"× 1"}</div><div style="color:#9ba8b9;font-size:12px;margin-top:4px">${esc(v.body)} · ${esc(v.cargo)}</div></div><span class="badge ${badge}">${badge==="green"?"VERDE":badge==="yellow"?"AMARILLO":"ROJO"}</span></div>
+ <div class="bars"><div class="barline"><span>Ocupación peso</span><div class="bar"><div class="fill" style="width:${Math.min(100,b.wOcc)}%"></div></div><b>${b.wOcc.toFixed(1)}%</b></div><div class="barline"><span>Ocupación volumen</span><div class="bar"><div class="fill" style="width:${Math.min(100,b.vOcc||0)}%"></div></div><b>${(b.vOcc||0).toFixed(1)}%</b></div></div>
+ <div class="rec-grid"><div class="rec-stat"><span>Peso total</span><b>${a.t.weight.toFixed(3)} t</b></div><div class="rec-stat"><span>Volumen total</span><b>${a.t.volume.toFixed(2)} m³</b></div><div class="rec-stat"><span>Área de piso</span><b>${a.t.area.toFixed(2)} m²</b></div><div class="rec-stat"><span>Dimensión máx.</span><b>${a.t.maxL.toFixed(2)} × ${a.t.maxW.toFixed(2)} × ${a.t.maxH.toFixed(2)} m</b></div></div>
+ <div class="alt-list"><b style="font-size:12px;color:#b9c3d1">Alternativas</b>${a.options.filter(x=>x.compatible&&x.v.name!==v.name).slice(0,3).map(x=>`<div class="alt"><strong>${esc(x.v.name)}</strong><span>1 vehículo</span><span>${x.wOcc.toFixed(1)}% peso</span><span>${x.v.vol?x.vOcc.toFixed(1)+"% volumen":"Vol. ND"}</span></div>`).join("")||'<div class="alert blue">No hay otra alternativa individual que cumpla todos los criterios.</div>'}</div>
+ </div>`;
+ generarCotizacion();
+}
+function money(v){ if(isNaN(v))v=0; return "$ "+Number(v).toLocaleString("es-CO",{minimumFractionDigits:0,maximumFractionDigits:0}); }
+function generarCotizacion(){
+  // Siempre recalculamos para que la cotización use los últimos datos ingresados.
+  if(!pieces.length){
+    $("quote").innerHTML='<div class="empty">⚠ Agrega al menos una pieza o grupo de piezas antes de generar la cotización.</div>';
+    return;
+  }
+  const a=analyzeSet();
+  lastAnalysis=a;
+  if(!a.best){
+    $("quote").innerHTML='<div class="alert red">⚠ No se encontró un vehículo compatible. Revisa peso, volumen, dimensiones y condiciones especiales.</div>';
+    return;
+  }
+  const op=$("operacion").value, mod=$("modalidad").value, serv=$("servicio").value;
+  const val=validation(a);
+  const fecha=$("fecha").value ? new Date($("fecha").value).toLocaleString("es-CO") : "Pendiente";
+
+  const venta=num("vVenta"), costo=num("vCosto"), sello=num("vSello"), devol=num("vDevolucion"), otros=num("vOtros");
+  let utilidad=$("vUtilidad").value!==""?num("vUtilidad"):(venta-costo-sello-devol-otros);
+  const totalCotizado = venta || (costo+sello+devol+otros+Math.max(0,utilidad));
+  const margenPct = venta ? (utilidad/venta*100) : 0;
+
+  $("quote").innerHTML=`<div class="quote-head"><div><b>Solicitud de transporte</b><div style="color:#8d99ab;font-size:11px;margin-top:4px">${esc(op)} · ${esc(mod)} · ${esc(serv)}</div></div><span class="badge ${val.level}">${val.level.toUpperCase()}</span></div>
+  <div class="final-recommendation">
+    <div class="final-rec-title"><span>VEHÍCULO RECOMENDADO</span><b>${val.level==="green"?"✓ MEJOR AJUSTE":val.level==="yellow"?"⚠ REVISAR ANTES DE COTIZAR":"✕ REVISIÓN NECESARIA"}</b></div>
+    <div class="final-rec-body">
+      <div class="final-rec-image">${vehicleSvg(a.best.v)}</div>
+      <div class="final-rec-main">
+        <div class="final-rec-name">${esc(a.best.v.name)} <small>× ${a.best.multi?a.best.count:1}</small></div>
+        <div class="final-rec-meta">${esc(a.best.v.body)} · ${esc(a.best.v.cargo)}</div>
+        <div class="final-rec-grid">
+          <div><span>Capacidad útil</span><strong>${a.best.v.cap===null?"N/D":a.best.v.cap+" t"}</strong></div>
+          <div><span>Volumen útil</span><strong>${a.best.v.vol===null?"N/D":a.best.v.vol+" m³"}</strong></div>
+          <div><span>Ocupación peso</span><strong>${a.best.wOcc.toFixed(1)}%</strong></div>
+          <div><span>Ocupación volumen</span><strong>${(a.best.vOcc||0).toFixed(1)}%</strong></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <table><tr><th>Ruta</th><td>${esc($("origen").value||"Pendiente")} → ${esc($("destino").value||"Pendiente")}</td></tr><tr><th>Recogida</th><td>${esc($("recogida").value||"Pendiente")}</td></tr><tr><th>Destino</th><td>${esc($("destino").value||"Pendiente")}</td></tr><tr><th>Fecha requerida</th><td>${esc(fecha)}</td></tr><tr><th>Tipo de carga</th><td>${esc($("tipoCarga").value||"Pendiente")}</td></tr><tr><th>Carga</th><td>${a.t.weight.toFixed(3)} t · ${a.t.volume.toFixed(2)} m³ · ${a.t.area.toFixed(2)} m² · ${pieces.length} referencias</td></tr><tr><th>Dimensión máxima</th><td>${a.t.maxL.toFixed(2)} × ${a.t.maxW.toFixed(2)} × ${a.t.maxH.toFixed(2)} m</td></tr><tr><th>Requerimientos</th><td>${requirements()}</td></tr></table>
+
+  <div class="final-recommendation" style="margin-top:18px">
+    <div class="final-rec-title"><span>VALORES DE LA COTIZACIÓN</span><b>${esc($("vObs").value||"")}</b></div>
+    <table style="margin-top:0">
+      <tr><th>Valor de venta (flete cliente)</th><td>${money(venta)}</td></tr>
+      <tr><th>Costo transportador</th><td>${money(costo)}</td></tr>
+      <tr><th>Sello satelital / seguridad</th><td>${money(sello)}</td></tr>
+      <tr><th>Devolución de vacío</th><td>${money(devol)}</td></tr>
+      <tr><th>Otros cargos</th><td>${money(otros)}</td></tr>
+      <tr><th>Utilidad neta</th><td>${money(utilidad)} ${venta?`(${margenPct.toFixed(1)}% sobre venta)`:""}</td></tr>
+      <tr><th><b>Total cotizado al cliente</b></th><td><b>${money(totalCotizado)}</b></td></tr>
+    </table>
+  </div>
+
+  <div style="margin-top:13px;color:#8f9bad;font-size:11px">Nota comercial: recomendación preliminar. Confirmar vehículo real, disponibilidad, ruta, restricciones, distribución física, permisos y tarifa antes de emitir la oferta definitiva.</div>
+  <div class="no-print" style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px"><button class="btn primary" onclick="imprimirCotizacion()">🖨 Imprimir / guardar PDF</button></div>`;
+}
+function imprimirCotizacion(){
+  showPanel(7);
+  generarCotizacion();
+  setTimeout(()=>window.print(),150);
+}
+function requirements(){
+ const r=[]; if($("cerrado").value==="Sí")r.push("carrocería cerrada"); if($("satelital").value==="Sí")r.push("sello satelital"); if($("escolta").value==="Sí")r.push("escolta"); if($("equipo").value!=="No")r.push($("equipo").value); if($("temp").value==="Sí")r.push("temperatura controlada"); if($("peligrosa").value==="Sí"||pieces.some(p=>p.peligrosa))r.push("mercancía peligrosa"); if($("sobredim").value==="Sí")r.push("sobredimensión"); return r.join(", ")||"Sin requerimientos especiales registrados";
+}
+
+function vehicleSvg(v){
+  const n = (v.name||"").toLowerCase();
+  let type = "truck";
+  if(n.includes("4 x 4") || n.includes("van") || n.includes("nhr") || n.includes("npr") || n.includes("nqr")) type="light";
+  else if(n.includes("turbo") || n.includes("600")) type="box";
+  else if(n.includes("doble") || n.includes("sencillo")) type="medium";
+  else if(n.includes("minimula") || n==="mula") type="semi";
+  else if(n.includes("portacontenedor")) type="container";
+  else if(n.includes("tanque") || n.includes("niñera")) type="tank";
+  else if(n.includes("tolva")) type="hopper";
+  else if(n.includes("cama baja") || n.includes("cama alta") || n.includes("plataforma") || n.includes("modular")) type="flat";
+  else if(n.includes("refrigerado")) type="reefer";
+
+  const id = ('veh'+Math.random().toString(36).slice(2,8));
+  const colors = {
+    light:['#f7fafc','#dbe7f3','#f59a2f'], box:['#eef3f8','#9eb2c8','#f59a2f'],
+    medium:['#edf3f8','#7890aa','#f59a2f'], semi:['#f4f7fa','#647d97','#ff9d2e'],
+    container:['#eaf2f8','#315b7a','#f59a2f'], tank:['#f2f5f8','#8a98a8','#f59a2f'],
+    hopper:['#f1f5f8','#667b90','#f59a2f'], flat:['#f4f6f8','#60768c','#f59a2f'],
+    reefer:['#ffffff','#c9d8e6','#37a7e8'], truck:['#f1f5f8','#71869a','#f59a2f']
+  }[type];
+  const [light, dark, accent] = colors;
+  const bg = `url(#${id}bg)`;
+  const wheel = (x,y,r=5)=>`<circle cx="${x}" cy="${y}" r="${r+2}" fill="#18212c" opacity=".35"/><circle cx="${x}" cy="${y}" r="${r}" fill="#111820" stroke="#e7edf3" stroke-width="1.6"/><circle cx="${x}" cy="${y}" r="2" fill="#8795a3"/>`;
+  const cab = `<path d="M12 49h9l5-18q1-4 5-4h16v22h-4" fill="${dark}" stroke="#e7edf3" stroke-width="1.4"/>
+    <path d="M27 31h14l4 14H25z" fill="url(#${id}glass)" stroke="#f6b35b" stroke-width="1.2"/>
+    <path d="M29 33h10l2 9H27z" fill="#bfe4f5" opacity=".92"/>
+    <path d="M16 48h6M47 48h7" stroke="${accent}" stroke-width="2.5" stroke-linecap="round"/>
+    ${wheel(32,51,5)}${wheel(66,51,5)}`;
+  let body='';
+  if(type==='light') body=`<rect x="49" y="32" width="30" height="17" rx="3" fill="url(#${id}body)" stroke="#e7edf3" stroke-width="1.4"/><path d="M53 35h22v11H53z" fill="#f7fbff" opacity=".22"/><path d="M52 48h25" stroke="${accent}" stroke-width="2"/>`;
+  else if(type==='box') body=`<rect x="48" y="24" width="47" height="25" rx="3" fill="url(#${id}body)" stroke="#e7edf3" stroke-width="1.5"/><path d="M53 28h37v17H53z" fill="#ffffff" opacity=".08"/><path d="M58 25v23M85 25v23" stroke="#ffffff" opacity=".16"/><path d="M52 47h38" stroke="${accent}" stroke-width="2"/>${wheel(57,51,5)}${wheel(86,51,5)}`;
+  else if(type==='medium') body=`<rect x="48" y="28" width="52" height="21" rx="3" fill="url(#${id}body)" stroke="#e7edf3" stroke-width="1.5"/><path d="M53 32h42v12H53z" fill="#ffffff" opacity=".08"/><path d="M61 29v19M88 29v19" stroke="#ffffff" opacity=".13"/><path d="M51 47h46" stroke="${accent}" stroke-width="2"/>${wheel(58,51,5)}${wheel(86,51,5)}${wheel(99,51,5)}`;
+  else if(type==='semi') body=`<rect x="48" y="27" width="43" height="22" rx="3" fill="url(#${id}body)" stroke="#e7edf3" stroke-width="1.5"/><path d="M92 32h13v17H92z" fill="${dark}" stroke="#e7edf3" stroke-width="1.3"/><path d="M53 31h33v14H53z" fill="#fff" opacity=".08"/><path d="M51 47h50" stroke="${accent}" stroke-width="2"/>${wheel(57,51,5)}${wheel(75,51,5)}${wheel(96,51,5)}${wheel(105,51,5)}`;
+  else if(type==='container') body=`<rect x="48" y="25" width="56" height="24" rx="2" fill="url(#${id}body)" stroke="#e7edf3" stroke-width="1.5"/><path d="M54 27v20M61 27v20M68 27v20M75 27v20M82 27v20M89 27v20M96 27v20" stroke="#ffffff" opacity=".18"/><rect x="78" y="30" width="19" height="9" rx="1" fill="#dbe8f1" opacity=".16"/><text x="87.5" y="37" text-anchor="middle" font-size="5" fill="#fff" opacity=".8" font-weight="700">20 / 40</text>${wheel(59,51,5)}${wheel(88,51,5)}${wheel(102,51,5)}`;
+  else if(type==='tank') body=`<path d="M49 31Q72 21 98 31v10q-24 10-49 0z" fill="url(#${id}body)" stroke="#e7edf3" stroke-width="1.5"/><path d="M55 33q18-6 37 0" fill="none" stroke="#fff" opacity=".22"/><path d="M51 47h46" stroke="${accent}" stroke-width="2"/>${wheel(58,51,5)}${wheel(87,51,5)}${wheel(101,51,5)}`;
+  else if(type==='hopper') body=`<path d="M49 28h51l-8 21H57z" fill="url(#${id}body)" stroke="#e7edf3" stroke-width="1.5"/><path d="M54 31h41" stroke="#fff" opacity=".18"/><path d="M58 47h38" stroke="${accent}" stroke-width="2"/>${wheel(60,51,5)}${wheel(89,51,5)}${wheel(101,51,5)}`;
+  else if(type==='flat') body=`<rect x="48" y="41" width="57" height="8" rx="2" fill="url(#${id}body)" stroke="#e7edf3" stroke-width="1.5"/><path d="M53 40v-10h12v10M69 40V26h13v14M86 40v-7h12v7" fill="none" stroke="${accent}" stroke-width="2.2"/><path d="M52 44h50" stroke="#fff" opacity=".15"/>${wheel(58,51,5)}${wheel(88,51,5)}${wheel(101,51,5)}`;
+  else if(type==='reefer') body=`<rect x="48" y="25" width="49" height="24" rx="3" fill="url(#${id}body)" stroke="#dbe5ee" stroke-width="1.5"/><rect x="52" y="29" width="40" height="15" rx="2" fill="#dff2fb"/><path d="M56 32h16M56 36h12" stroke="#70b9d8" stroke-width="1.2"/><text x="81" y="39" text-anchor="middle" font-size="5.2" fill="#25749c" font-weight="800">REEFER</text>${wheel(58,51,5)}${wheel(88,51,5)}${wheel(101,51,5)}`;
+  return `<svg viewBox="0 0 118 62" role="img" aria-label="${esc(v.name)}">
+    <defs>
+      <linearGradient id="${id}bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#182332"/><stop offset="1" stop-color="#0c121a"/></linearGradient>
+      <linearGradient id="${id}body" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${light}"/><stop offset="1" stop-color="${dark}"/></linearGradient>
+      <linearGradient id="${id}glass" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#d9f5ff"/><stop offset="1" stop-color="#68a9c7"/></linearGradient>
+      <filter id="${id}shadow"><feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="#000" flood-opacity=".45"/></filter>
+    </defs>
+    <rect width="118" height="62" rx="9" fill="${bg}"/>
+    <path d="M8 54h103" stroke="#344454" stroke-width="1"/>
+    <ellipse cx="64" cy="53" rx="48" ry="4" fill="#000" opacity=".28"/>
+    <g filter="url(#${id}shadow)">${cab}${body}</g>
+    <path d="M12 48h4" stroke="#ffd36b" stroke-width="2" stroke-linecap="round"/>
+  </svg>`;
+}
+
+function renderVehicles(){
+ $("vehicleTable").innerHTML=vehicles.map((v,i)=>`<tr onclick="verFicha(${i})">
+   <td><div class="vehicle-name"><div><b>${esc(v.name)}</b><div class="vehicle-badge">${esc(v.special||"Estándar")}</div></div></div></td>
+   <td><div class="vehicle-photo">${vehicleSvg(v)}</div></td>
+   <td>${v.cap? v.cap.toFixed(1):"ND"}</td>
+   <td>${v.vol?v.vol.toFixed(1):"ND"}</td>
+   <td class="muted-cell">${v.L?`${v.L} × ${v.W} × ${v.H}`:"Según resolución"}</td>
+   <td>${esc(v.body)}</td>
+   <td>${esc(v.cargo)}</td>
+   <td class="muted-cell">${esc(v.special||"—")}</td>
+ </tr>`).join("");
+ localStorage.setItem("lt_vehicles",JSON.stringify(vehicles));
+}
+function verFicha(i){
+ const v=vehicles[i];
+ const box=$("vehicleModalBox");
+ box.innerHTML=`
+  <div class="modal-head">
+    <div><div class="eyebrow">FICHA TÉCNICA</div><h2 style="margin:4px 0 0">${esc(v.name)}</h2></div>
+    <button class="iconbtn" onclick="cerrarFicha()">×</button>
+  </div>
+  <div class="modal-image">${vehicleSvg(v)}</div>
+  <div class="final-rec-grid" style="margin-top:16px">
+    <div><span>Capacidad útil</span><strong>${v.cap!==null?v.cap+" t":"N/D"}</strong></div>
+    <div><span>Volumen útil</span><strong>${v.vol!==null?v.vol+" m³":"N/D"}</strong></div>
+    <div><span>Largo interno</span><strong>${v.L!==null?v.L+" m":"Según resolución"}</strong></div>
+    <div><span>Ancho interno</span><strong>${v.W!==null?v.W+" m":"Según resolución"}</strong></div>
+    <div><span>Alto interno</span><strong>${v.H!==null?v.H+" m":"Según resolución"}</strong></div>
+    <div><span>Carrocería</span><strong>${esc(v.body)}</strong></div>
+    <div><span>Uso / carga</span><strong>${esc(v.cargo)}</strong></div>
+    <div><span>Condición especial</span><strong>${esc(v.special||"Estándar")}</strong></div>
+  </div>
+  <div class="footer-note" style="margin-top:16px;text-align:left">Ficha generada a partir de la tabla maestra editable. Ajusta los valores en la pestaña "Tabla maestra" si difieren de la cotización real del transportador.</div>
+  <div style="display:flex;justify-content:flex-end;margin-top:14px"><button class="btn primary" onclick="cerrarFicha()">Cerrar</button></div>
+ `;
+ $("vehicleModalOverlay").classList.add("open");
+}
+function cerrarFicha(){$("vehicleModalOverlay").classList.remove("open");}
+function restaurarVehiculos(){if(confirm("¿Restaurar la tabla maestra a los valores base?")){vehicles=BASE_VEHICLES.map(v=>({...v}));renderVehicles();}}
+function reiniciarTodo(){if(!confirm("Esto borrará la solicitud, las piezas y el análisis. ¿Continuar?"))return;pieces=[];lastAnalysis=null;document.querySelectorAll("input").forEach(i=>{if(i.type!=="checkbox")i.value=""});document.querySelectorAll("select").forEach(s=>s.selectedIndex=0);$("pCant").value=1;$("contCant").value=1;renderPieces();$("alerts").innerHTML='<div class="alert blue">Solicitud reiniciada. Puedes empezar una nueva.</div>';$("recommendation").innerHTML="";$("quote").innerHTML='<div class="empty">Aún no hay cotización.</div>';toggleContainer();window.scrollTo({top:0,behavior:"smooth"})}
+renderVehicles();renderPieces();calcPiecePreview();
+document.addEventListener("input",updateDashboard);document.addEventListener("change",updateDashboard);
