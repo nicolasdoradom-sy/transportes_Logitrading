@@ -155,7 +155,7 @@ function calcPiecePreview(){
 function addPieceObject(){
  const q=Math.max(1,num("pCant")), L=unitToM(num("pL"),$("pUnidad").value), W=unitToM(num("pA"),$("pUnidad").value), H=unitToM(num("pH"),$("pUnidad").value), wt=weightToT(num("pPeso"),$("pPesoUnidad").value);
  if(!L||!W||!H||!wt){alert("Completa cantidad, largo, ancho, alto y peso de la pieza.");return null}
- return {desc:$("pDesc").value.trim()||`Referencia ${pieces.length+1}`,q,L,W,H,wt,apilable:$("pApilable").checked,acostarse:$("pAcostarse").checked,sobresalir:$("pSobresalir").checked,fragil:$("pFragil").checked,peligrosa:$("pPeligrosa").checked};
+ return {desc:$("pDesc").value.trim()||`Referencia ${pieces.length+1}`,q,L,W,H,wt,nw:wt,gw:wt,apilable:$("pApilable").checked,acostarse:$("pAcostarse").checked,sobresalir:$("pSobresalir").checked,fragil:$("pFragil").checked,peligrosa:$("pPeligrosa").checked};
 }
 function resetPieceForm(){
  ["pDesc","pL","pA","pH","pPeso"].forEach(id=>$(id).value="");
@@ -181,7 +181,7 @@ function renderPieces(){
  else el.innerHTML=pieces.map((p,i)=>`<div class="piece"><div class="piece-grid">
  <div><b>${esc(p.desc)}</b><small>${p.q} und · ${p.L.toFixed(2)} × ${p.W.toFixed(2)} × ${p.H.toFixed(2)} m</small></div>
  <div><small>Peso</small><b>${(p.wt*p.q).toFixed(3)} t</b></div>
- <div><small>Volumen</small><b>${(p.L*p.W*p.H*p.q).toFixed(2)} m³</b></div>
+ <div><small>Volumen</small><b>${(Number.isFinite(Number(p.volume))?Number(p.volume):p.L*p.W*p.H*p.q).toFixed(2)} m³</b></div>
  <div><small>Área piso</small><b>${(p.L*p.W*p.q).toFixed(2)} m²</b></div>
  <div><small>Apilable</small><b>${p.apilable?"Sí":"No"}</b></div>
  <div><small>Estado</small><b>${p.peligrosa?"Peligrosa":p.fragil?"Frágil":"Normal"}</b></div>
@@ -200,16 +200,17 @@ function renderMeasuresTable(){
   return;
  }
  if(!pieces.length){tbl.innerHTML='<tr><td colspan="5" class="muted-cell" style="text-align:center;padding:16px">Sin referencias registradas.</td></tr>';return}
- tbl.innerHTML=pieces.map(p=>`<tr><td>${esc(p.desc)}</td><td>${p.q}</td><td class="muted-cell">${p.L.toFixed(2)}×${p.W.toFixed(2)}×${p.H.toFixed(2)}</td><td>${p.wt.toFixed(3)}</td><td>${(p.L*p.W*p.H*p.q).toFixed(2)}</td></tr>`).join("");
+ tbl.innerHTML=pieces.map(p=>`<tr><td>${esc(p.desc)}</td><td>${p.q}</td><td class="muted-cell">${p.L.toFixed(2)}×${p.W.toFixed(2)}×${p.H.toFixed(2)}</td><td>${p.wt.toFixed(3)}</td><td>${(Number.isFinite(Number(p.volume))?Number(p.volume):p.L*p.W*p.H*p.q).toFixed(2)}</td></tr>`).join("");
 }
 function isContainer(){return $("tipoCarga")?.value==="Contenedor"}
-function hasCargo(){return isContainer() ? num("contMerc")>0 && num("contCant")>=1 : pieces.length>0}
+function hasCargo(){return pieces.length>0 || (isContainer() && num("contMerc")>0 && num("contCant")>=1)}
 function totals(){
  if(isContainer()){
   const count=Math.max(1,num("contCant"));
-  return {weight:(num("contMerc")+num("contTara"))*count/1000,volume:0,area:0,refs:count,maxL:0,maxW:0,maxH:0};
+  const weight=(num("contMerc")+num("contTara"))*count/1000;
+  return {weight,gw:weight,net:num("contMerc")*count/1000,volume:0,area:0,refs:count,maxL:0,maxW:0,maxH:0};
  }
- return pieces.reduce((a,p)=>{a.weight+=p.wt*p.q;a.volume+=p.L*p.W*p.H*p.q;a.area+=p.L*p.W*p.q; a.maxL=Math.max(a.maxL,p.L);a.maxW=Math.max(a.maxW,p.W);a.maxH=Math.max(a.maxH,p.H);return a},{weight:0,volume:0,area:0,refs:pieces.length,maxL:0,maxW:0,maxH:0});
+ return pieces.reduce((a,p)=>{const quantity=Number(p.q)||0;const gross=Number(p.gw??p.wt)||0;const net=Number(p.nw??p.wt)||0;a.weight+=gross*quantity;a.gw+=gross*quantity;a.net+=net*quantity;a.volume+=Number.isFinite(Number(p.volume))?Number(p.volume):p.L*p.W*p.H*quantity;a.area+=p.L*p.W*quantity;a.maxL=Math.max(a.maxL,p.L);a.maxW=Math.max(a.maxW,p.W);a.maxH=Math.max(a.maxH,p.H);return a},{weight:0,gw:0,net:0,volume:0,area:0,refs:pieces.length,maxL:0,maxW:0,maxH:0});
 }
 function esc(s){return String(s).replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]))}
 
@@ -257,13 +258,78 @@ function convertPdfMeasurement(measurement,defaultUnit){
  if(["lb","lbs"].includes(unit))return measurement.value*0.00045359237;
  return measurement.value;
 }
-function pdfLines(items){
+function pdfRows(items){
  const groups=[];
- items.forEach(item=>{
-  const group=groups.find(candidate=>Math.abs(candidate.y-item.transform[5])<3);
-  if(group)group.items.push(item);else groups.push({y:item.transform[5],items:[item]});
+ items.filter(item=>String(item.str||"").trim()).forEach(item=>{
+  const x=Number(item.transform?.[4]||0), y=Number(item.transform?.[5]||0);
+  const group=groups.find(candidate=>Math.abs(candidate.y-y)<3);
+  if(group)group.items.push({text:String(item.str).trim(),x});else groups.push({y,items:[{text:String(item.str).trim(),x}]});
  });
- return groups.sort((a,b)=>b.y-a.y).map(group=>group.items.sort((a,b)=>a.transform[4]-b.transform[4]).map(item=>item.str).join(" ").trim()).filter(Boolean);
+ return groups.sort((a,b)=>b.y-a.y).map(group=>({y:group.y,items:group.items.sort((a,b)=>a.x-b.x),text:group.items.map(item=>item.text).join(" ").trim()})).filter(row=>row.text);
+}
+function pdfLines(items){return pdfRows(items).map(row=>row.text)}
+function pdfCell(row,columns,aliases){
+ const column=columns.find(candidate=>aliases.some(alias=>candidate.name===normHeader(alias)))||columns.find(candidate=>aliases.some(alias=>candidate.name.includes(normHeader(alias))));
+ if(!column)return "";
+ return row.items.filter(item=>Math.abs(item.x-column.x)<column.width/2).map(item=>item.text).join(" ").trim();
+}
+function pdfTableRecords(items){
+ const rows=pdfRows(items);
+ const headerIndex=rows.findIndex(row=>/codigo/.test(normHeader(row.text))&&/(description|descripcion)/.test(normHeader(row.text))&&/(qty|quantity|pcs|ctns|nw|gw)/.test(normHeader(row.text)));
+ if(headerIndex<0)return {records:[],totals:{}};
+ const labels=[
+  ["codigo",["codigo","code"]],["referencia",["referencia","reference","ref"]],["description",["description","descripcion"]],
+  ["qty",["qtypcs","quantitypcs","cantidad","qty","pcs"]],["pcsctn",["pcsctn","pcsbox"]],["ctns",["ctns","cartons","cajas","boxes"]],
+  ["totalnw",["totalnw","nettotal","nwtotal"]],["nw",["nw","netweight"]],["totalgw",["totalgw","grosstotal","gwtotal"]],["gw",["gw","grossweight"]],
+  ["size",["size","cbm","dimension","dimensiones"]]
+ ];
+ const columns=[];
+ labels.forEach(([name,aliases])=>{
+  const token=rows[headerIndex].items.find(item=>aliases.some(alias=>normHeader(item.text).includes(normHeader(alias))));
+  if(token&&!columns.some(column=>Math.abs(column.x-token.x)<4))columns.push({name,x:token.x,width:Infinity});
+ });
+ columns.sort((a,b)=>a.x-b.x).forEach((column,index)=>{column.width=index<columns.length-1?Math.max(18,columns[index+1].x-column.x):80});
+ const records=[];
+ for(const row of rows.slice(headerIndex+1)){
+  const normalized=normalizePdfText(row.text);
+  if(/total|subtotal|cantidad total|peso neto|peso bruto|volume total|volumen total/.test(normalized)||!/\d/.test(row.text))continue;
+  const size=pdfCell(row,columns,["size","cbm","dimension","dimensiones"]);
+  const dimensions=findPdfDimensions(size);
+  const q=parseNumber(pdfCell(row,columns,["qty","cantidad","quantity","pcs"]));
+  const boxes=parseNumber(pdfCell(row,columns,["ctns","cajas","boxes","cartons"]));
+  const nwTotal=parseNumber(pdfCell(row,columns,["totalnw","nettotal","nwtotal"]));
+  const gwTotal=parseNumber(pdfCell(row,columns,["totalgw","grosstotal","gwtotal"]));
+  const nw=parseNumber(pdfCell(row,columns,["nw","netweight"]));
+  const gw=parseNumber(pdfCell(row,columns,["gw","grossweight"]));
+  if(!Number.isFinite(q)||(!Number.isFinite(gwTotal)&&!Number.isFinite(gw)&&!Number.isFinite(nwTotal)&&!Number.isFinite(nw)))continue;
+  const description=pdfCell(row,columns,["description","descripcion"])||pdfCell(row,columns,["referencia","reference","ref"])||`Ítem ${records.length+1}`;
+  const grossKg=Number.isFinite(gwTotal)?gwTotal:Number.isFinite(gw)?gw*Math.max(1,boxes||1):nwTotal;
+  const netKg=Number.isFinite(nwTotal)?nwTotal:Number.isFinite(nw)?nw*Math.max(1,boxes||1):grossKg;
+  const dimensionsUnit=dimensions?.unit||"cm";
+  const L=dimensions?convertPdfMeasurement({value:dimensions.L,unit:dimensionsUnit},"cm"):NaN;
+  const W=dimensions?convertPdfMeasurement({value:dimensions.W,unit:dimensionsUnit},"cm"):NaN;
+  const H=dimensions?convertPdfMeasurement({value:dimensions.H,unit:dimensionsUnit},"cm"):NaN;
+  const cbm=parseNumber(size.match(/(?:cbm|m3|m³)\s*[:=]?\s*([0-9][0-9.,]*)/i)?.[1]);
+  const volume=Number.isFinite(L)&&Number.isFinite(W)&&Number.isFinite(H)?L*W*H*Math.max(1,boxes||1):cbm;
+  if(!Number.isFinite(volume)||!Number.isFinite(grossKg))continue;
+  const quantity=Math.max(1,q);
+  records.push({desc:description,q:quantity,L,W,H,wt:grossKg/1000/quantity,nw:netKg/1000/quantity,gw:grossKg/1000/quantity,boxes:boxes||0,volume,apilable:false,acostarse:false,sobresalir:false,fragil:false,peligrosa:false});
+ }
+ return {records,totals:pdfTotals(rows.slice(headerIndex+1).map(row=>row.text).join(" "))};
+}
+function pdfTotals(text){
+ const find=(aliases)=>{const match=new RegExp(`(?:${aliases.join("|")})\\s*[:=]?\\s*([0-9][0-9.,]*)\\s*(kg|cbm|m3|m³|pcs|piezas|cajas)?`,"i").exec(text);return match?parseNumber(match[1]):NaN};
+ return {quantity:find(["cantidad total","total quantity","total pcs"]),boxes:find(["total de cajas","total cajas","total cartons","total ctns"]),net:find(["peso neto total","total nw"]),gross:find(["peso bruto total","total gw"]),volume:find(["volumen total","volume total","total cbm"])};
+}
+function comparePdfTotals(expected,actual){
+ const checks=[
+  ["cantidad",expected.quantity,actual.quantity,0],
+  ["cajas",expected.boxes,actual.boxes,0],
+  ["peso neto",expected.net,actual.net*1000,0.1],
+  ["peso bruto",expected.gross,actual.weight*1000,0.1],
+  ["volumen",expected.volume,actual.volume,0.02]
+ ];
+ return checks.filter(([,documentValue,calculated,tolerance])=>Number.isFinite(documentValue)&&Number.isFinite(calculated)&&Math.abs(documentValue-calculated)>tolerance).map(([name,documentValue,calculated,tolerance])=>({name,documentValue,calculated,tolerance,difference:calculated-documentValue}));
 }
 function pdfRecord(text,index){
  const normalized=normalizePdfText(text);
@@ -326,10 +392,11 @@ async function importarPDF(file){
  if(typeof pdfjsLib==="undefined")throw new Error("El lector PDF todavía no está disponible.");
  pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
  const documentPdf=await pdfjsLib.getDocument({data:new Uint8Array(await file.arrayBuffer())}).promise;
- const lines=[];
+ const lines=[], items=[];
  for(let pageNumber=1;pageNumber<=documentPdf.numPages;pageNumber++){
   const page=await documentPdf.getPage(pageNumber);
   const content=await page.getTextContent();
+  items.push(...content.items);
   lines.push(...pdfLines(content.items));
  }
  let text=normalizePdfText(lines.join(" "));
@@ -339,12 +406,20 @@ async function importarPDF(file){
   lines.push(...await ocrPdfPages(documentPdf));
   text=normalizePdfText(lines.join(" "));
  }
- let records=lines.map((line,index)=>pdfRecord(line,index+1)).filter(result=>result&&result.missing.length===0).map(result=>result.record);
+ let table=pdfTableRecords(items);
+ let records=table.records;
+ if(!records.length)records=lines.map((line,index)=>pdfRecord(line,index+1)).filter((result,index)=>result&&result.missing.length===0&&!/total|subtotal/i.test(lines[index])).map(result=>({...result.record,nw:result.record.wt,gw:result.record.wt}));
  let partial=pdfRecord(lines.join(" "),1);
  if(!records.length&&partial&&partial.missing.length===0)records=[partial.record];
  let importadas=0;
  records.forEach(record=>{pieces.push({...record,apilable:false,acostarse:false,sobresalir:false,fragil:false,peligrosa:false});importadas++});
  renderPieces();
+ const importedTotals=records.reduce((a,record)=>{a.quantity+=Number(record.q)||0;a.boxes+=Number(record.boxes)||0;a.net+=(Number(record.nw)||0)*(Number(record.q)||0);a.weight+=(Number(record.gw??record.wt)||0)*(Number(record.q)||0);a.volume+=Number(record.volume)||0;return a},{quantity:0,boxes:0,net:0,weight:0,volume:0});
+ const mismatches=comparePdfTotals(table.totals||{},importedTotals);
+ if(importadas){
+  console.info("PDF -> Analizador",{referencias:pieces.length,unidades:importedTotals.quantity,cajas:importedTotals.boxes,pesoNetoKg:importedTotals.net*1000,pesoBrutoKg:importedTotals.weight*1000,volumenM3:importedTotals.volume});
+  if(mismatches.length)alert(`Alerta: los datos calculados no coinciden con los totales del PDF (${mismatches.map(item=>`${item.name}: ${item.difference>0?"+":""}${item.difference.toFixed(2)}`).join(", ")}). Se conservaron los datos extraídos sin corregirlos automáticamente.`);
+ }
  if(!importadas&&partial){prepareIncompleteImport(partial)}
  const missing=partial?.missing||["largo","ancho","alto","peso"];
  const noReadableText=!text.trim()&&!lines.length;
@@ -467,6 +542,8 @@ function validation(a){
  return {level:errs.length?"red":warns.length?"yellow":"green",errs,warns}
 }
 function analizar(){
+ const currentTotals=totals();
+ console.info("Analizador recibe",{referencias:pieces.length,unidades:pieces.reduce((sum,p)=>sum+(Number(p.q)||0),0),cajas:pieces.reduce((sum,p)=>sum+(Number(p.boxes)||0),0),pesoNetoKg:(currentTotals.net||0)*1000,pesoBrutoKg:(currentTotals.weight||0)*1000,volumenM3:currentTotals.volume||0});
  const a=analyzeSet(); lastAnalysis=a; const val=a.best?validation(a):{level:"blue",errs:["Agrega al menos una pieza."],warns:[]};
  $("alerts").innerHTML=[...val.errs.map(x=>`<div class="alert red">⚠ ${esc(x)}</div>`),...val.warns.map(x=>`<div class="alert yellow">⚠ ${esc(x)}</div>`),(!val.errs.length&&!val.warns.length?`<div class="alert green">✓ La combinación cumple peso, volumen, dimensiones y condiciones registradas.</div>`:"")].join("");
  renderMeasuresTable();
@@ -475,7 +552,7 @@ function analizar(){
  $("recommendation").innerHTML=`<div class="recommend">
  <div class="rec-top"><div><div class="eyebrow">RECOMENDACIÓN ${b.multi?"DE COMBINACIÓN":"PRINCIPAL"}</div><div class="rec-name">${esc(v.name)} ${b.multi?`× ${b.count}`:"× 1"}</div><div style="color:#9ba8b9;font-size:12px;margin-top:4px">${esc(v.body)} · ${esc(v.cargo)}</div></div><span class="badge ${badge}">${badge==="green"?"VERDE":badge==="yellow"?"AMARILLO":"ROJO"}</span></div>
  <div class="bars"><div class="barline"><span>Ocupación peso</span><div class="bar"><div class="fill" style="width:${Math.min(100,b.wOcc)}%"></div></div><b>${b.wOcc.toFixed(1)}%</b></div><div class="barline"><span>Ocupación volumen</span><div class="bar"><div class="fill" style="width:${Math.min(100,b.vOcc||0)}%"></div></div><b>${(b.vOcc||0).toFixed(1)}%</b></div></div>
- <div class="rec-grid"><div class="rec-stat"><span>Peso total</span><b>${a.t.weight.toFixed(3)} t</b></div><div class="rec-stat"><span>Volumen total</span><b>${a.t.volume.toFixed(2)} m³</b></div><div class="rec-stat"><span>Área de piso</span><b>${a.t.area.toFixed(2)} m²</b></div><div class="rec-stat"><span>Dimensión máx.</span><b>${a.t.maxL.toFixed(2)} × ${a.t.maxW.toFixed(2)} × ${a.t.maxH.toFixed(2)} m</b></div></div>
+ <div class="rec-grid"><div class="rec-stat"><span>Peso bruto</span><b>${(a.t.weight*1000).toFixed(2)} kg</b></div><div class="rec-stat"><span>Peso neto</span><b>${((a.t.net||0)*1000).toFixed(2)} kg</b></div><div class="rec-stat"><span>Volumen total</span><b>${a.t.volume.toFixed(2)} m³</b></div><div class="rec-stat"><span>Referencias</span><b>${a.t.refs}</b></div><div class="rec-stat"><span>Dimensión máx.</span><b>${a.t.maxL.toFixed(2)} × ${a.t.maxW.toFixed(2)} × ${a.t.maxH.toFixed(2)} m</b></div></div>
  <div class="alt-list"><b style="font-size:12px;color:#b9c3d1">Alternativas</b>${a.options.filter(x=>x.compatible&&x.v.name!==v.name).slice(0,3).map(x=>`<div class="alt"><strong>${esc(x.v.name)}</strong><span>1 vehículo</span><span>${x.wOcc.toFixed(1)}% peso</span><span>${x.v.vol?x.vOcc.toFixed(1)+"% volumen":"Vol. ND"}</span></div>`).join("")||'<div class="alert blue">No hay otra alternativa individual que cumpla todos los criterios.</div>'}</div>
  </div>`;
  generarCotizacion();
@@ -541,7 +618,7 @@ function generarCotizacion(guardar=false){
       </div>
     </div>
   </div>
-  <div class="quote-section"><div class="quote-section-title">Detalles del servicio</div><table class="service-details"><tr><th>Ruta</th><td>${esc($("origen").value||"Pendiente")} → ${esc($("destino").value||"Pendiente")}</td></tr><tr><th>Recogida</th><td>${esc($("recogida").value||"Pendiente")}</td></tr><tr><th>Destino</th><td>${esc($("destino").value||"Pendiente")}</td></tr><tr><th>Fecha requerida</th><td>${esc(fecha)}</td></tr><tr><th>Tipo de carga</th><td>${esc($("tipoCarga").value||"Pendiente")}</td></tr><tr><th>Carga</th><td>${a.t.weight.toFixed(3)} t · ${a.t.volume.toFixed(2)} m³ · ${a.t.area.toFixed(2)} m² · ${pieces.length} referencias</td></tr><tr><th>Dimensión máxima</th><td>${a.t.maxL.toFixed(2)} × ${a.t.maxW.toFixed(2)} × ${a.t.maxH.toFixed(2)} m</td></tr><tr><th>Requerimientos</th><td>${requirements()}</td></tr></table></div>
+  <div class="quote-section"><div class="quote-section-title">Detalles del servicio</div><table class="service-details"><tr><th>Ruta</th><td>${esc($("origen").value||"Pendiente")} → ${esc($("destino").value||"Pendiente")}</td></tr><tr><th>Recogida</th><td>${esc($("recogida").value||"Pendiente")}</td></tr><tr><th>Destino</th><td>${esc($("destino").value||"Pendiente")}</td></tr><tr><th>Fecha requerida</th><td>${esc(fecha)}</td></tr><tr><th>Tipo de carga</th><td>${esc($("tipoCarga").value||"Pendiente")}</td></tr><tr><th>Carga</th><td>Peso bruto: ${(a.t.weight*1000).toFixed(2)} kg · Peso neto: ${((a.t.net||0)*1000).toFixed(2)} kg · ${a.t.volume.toFixed(2)} m³ · ${a.t.area.toFixed(2)} m² · ${pieces.length} referencias</td></tr><tr><th>Dimensión máxima</th><td>${a.t.maxL.toFixed(2)} × ${a.t.maxW.toFixed(2)} × ${a.t.maxH.toFixed(2)} m</td></tr><tr><th>Requerimientos</th><td>${requirements()}</td></tr></table></div>
 
   <div class="final-recommendation quote-values" style="margin-top:18px">
     <div class="final-rec-title"><span>VALORES DE LA COTIZACIÓN</span><b>${esc($("vObs").value||"")}</b></div>
